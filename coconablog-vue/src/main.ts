@@ -1,6 +1,14 @@
-import './assets/main.css'
+import './styles/theme.css'
+import './styles/markdown.css'
 
 import { createApp } from 'vue'
 import App from './App.vue'
+import router from './router'
+import pinia from './store'
 
-createApp(App).mount('#app')
+const app = createApp(App)
+
+app.use(router)
+app.use(pinia)
+
+app.mount('#app')
