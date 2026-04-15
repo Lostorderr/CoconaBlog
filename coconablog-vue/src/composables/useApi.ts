@@ -214,14 +214,33 @@ export function useComments() {
   }
 }
 
-export function useAuth() {
-  const user = ref<UserInfo | null>(null)
-  const token = ref<string | null>(localStorage.getItem('token'))
-  const loading = ref(false)
-  const error = ref<string | null>(null)
+const _authUser = ref<UserInfo | null>(null)
+const _authToken = ref<string | null>(localStorage.getItem('token'))
+const _authLoading = ref(false)
+const _authError = ref<string | null>(null)
 
-  const isLoggedIn = computed(() => !!token.value && !!user.value)
-  const isAdmin = computed(() => user.value?.role === 1)
+;(function initAuthFromStorage() {
+  const storedUser = localStorage.getItem('user')
+  if (storedUser) {
+    try {
+      _authUser.value = JSON.parse(storedUser)
+    } catch {
+      localStorage.removeItem('user')
+    }
+  }
+})()
+
+const _isLoggedIn = computed(() => !!_authToken.value && !!_authUser.value)
+const _isAdmin = computed(() => _authUser.value?.role === 1)
+
+export function useAuth() {
+  const user = _authUser
+  const token = _authToken
+  const loading = _authLoading
+  const error = _authError
+
+  const isLoggedIn = _isLoggedIn
+  const isAdmin = _isAdmin
 
   async function login(data: LoginRequest) {
     loading.value = true

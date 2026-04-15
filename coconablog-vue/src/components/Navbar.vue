@@ -12,7 +12,7 @@
         </router-link>
       </div>
 
-      <div class="navbar-center">
+      <div class="navbar-center" v-show="!isMenuOpen">
         <router-link
           v-for="item in menuItems"
           :key="item.path"
@@ -47,10 +47,19 @@
             <span class="user-dropdown">▼</span>
           </div>
           <div class="user-dropdown-menu" :class="{ active: isUserMenuOpen }">
+            <router-link to="/profile" class="dropdown-item" @click="closeUserMenu">
+              <span>👤</span>
+              <span>个人中心</span>
+            </router-link>
             <router-link to="/create-article" class="dropdown-item" @click="closeUserMenu">
               <span>📝</span>
               <span>发布文章</span>
             </router-link>
+            <router-link v-if="isAdmin" to="/admin" class="dropdown-item admin" @click="closeUserMenu">
+              <span>⚙️</span>
+              <span>管理后台</span>
+            </router-link>
+            <div class="dropdown-divider"></div>
             <button class="dropdown-item" @click="handleLogout">
               <span>🚪</span>
               <span>退出登录</span>
@@ -130,14 +139,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useApi'
 import { useBlogStore } from '@/store/blog'
 import { storeToRefs } from 'pinia'
 
 const router = useRouter()
-const { user, isLoggedIn, logout, initFromStorage } = useAuth()
+const { user, isLoggedIn, logout } = useAuth()
 const blogStore = useBlogStore()
 const { categories, tags } = storeToRefs(blogStore)
 
@@ -146,6 +155,8 @@ const showSearch = ref(false)
 const searchQuery = ref('')
 const isUserMenuOpen = ref(false)
 
+const isAdmin = computed(() => user.value?.role === 1)
+
 const menuItems = [
   { name: '首页', path: '/', icon: '🏠' },
   { name: '文章', path: '/articles', icon: '📝' },
@@ -153,7 +164,6 @@ const menuItems = [
 ]
 
 onMounted(async () => {
-  initFromStorage()
   await blogStore.fetchCategories()
   await blogStore.fetchTags()
 })
@@ -204,11 +214,12 @@ async function handleLogout() {
 .navbar {
   position: sticky;
   top: 0;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--shadow-sm);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
   z-index: 1000;
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .navbar-container {
@@ -431,7 +442,7 @@ async function handleLogout() {
   box-shadow: var(--shadow-md);
   margin-top: var(--spacing-sm);
   padding: var(--spacing-xs);
-  min-width: 150px;
+  min-width: 160px;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-10px);
@@ -464,6 +475,20 @@ async function handleLogout() {
 .dropdown-item:hover {
   background: var(--bg-hover);
   color: var(--primary-color);
+}
+
+.dropdown-item.admin {
+  color: #a855f7;
+}
+
+.dropdown-item.admin:hover {
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: var(--spacing-xs) 0;
 }
 
 .menu-dropdown {

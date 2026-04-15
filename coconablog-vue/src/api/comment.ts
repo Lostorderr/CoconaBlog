@@ -8,10 +8,6 @@ import type {
 } from './types'
 
 export const commentApi = {
-  getList(params?: CommentQuery): Promise<PageResponse<CommentInfo>> {
-    return request.getPage<CommentInfo>('/comments', { params })
-  },
-
   getByArticleId(articleId: number, params?: CommentQuery): Promise<PageResponse<CommentInfo>> {
     return request.getPage<CommentInfo>(`/comments/article/${articleId}`, { params })
   },
@@ -30,5 +26,17 @@ export const commentApi = {
 
   unlike(id: number): Promise<ApiResponse<null>> {
     return request.delete<null>(`/comments/${id}/like`)
+  },
+
+  getMyComments(params?: { page?: number; pageSize?: number }): Promise<PageResponse<CommentInfo>> {
+    return request.getPage<CommentInfo>('/comments/my', { params })
+  },
+
+  getAll(params?: { page?: number; pageSize?: number }): Promise<PageResponse<CommentInfo>> {
+    return request.getPage<CommentInfo>('/comments', { params })
+  },
+
+  updateStatus(id: number, status: number): Promise<ApiResponse<null>> {
+    return request.put<null>(`/comments/${id}/status`, { status })
   }
 }

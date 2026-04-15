@@ -13,7 +13,7 @@ mybatis:
     map-underscore-to-camel-case: true
 
 jwt:
-  secret: ******
+  secret: 123456
   expiration: 86400000
 
 server:

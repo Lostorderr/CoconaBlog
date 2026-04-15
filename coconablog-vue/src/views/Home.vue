@@ -34,6 +34,18 @@
       </div>
     </section>
 
+    <div class="wave-transition">
+      <svg class="wave wave-1" viewBox="0 0 1440 120" preserveAspectRatio="none">
+        <path d="M0,60 C360,120 720,0 1080,60 C1260,90 1380,80 1440,60 L1440,120 L0,120 Z" />
+      </svg>
+      <svg class="wave wave-2" viewBox="0 0 1440 120" preserveAspectRatio="none">
+        <path d="M0,80 C240,20 480,100 720,60 C960,20 1200,100 1440,40 L1440,120 L0,120 Z" />
+      </svg>
+      <svg class="wave wave-3" viewBox="0 0 1440 120" preserveAspectRatio="none">
+        <path d="M0,40 C180,100 360,20 540,80 C720,120 900,30 1080,70 C1260,100 1380,50 1440,70 L1440,120 L0,120 Z" />
+      </svg>
+    </div>
+
     <section class="featured-section container">
       <div class="section-header">
         <h2 class="section-title">
@@ -180,6 +192,43 @@ function formatNumber(num: number): string {
     radial-gradient(circle at 20% 30%, rgba(255, 107, 157, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 70%, rgba(124, 77, 255, 0.1) 0%, transparent 50%);
   pointer-events: none;
+}
+
+.wave-transition {
+  position: relative;
+  margin-top: -2px;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.wave {
+  display: block;
+  width: 100%;
+  height: 80px;
+}
+
+.wave-1 path {
+  fill: rgba(255, 238, 243, 0.4);
+  animation: waveFloat 8s ease-in-out infinite;
+}
+
+.wave-2 path {
+  fill: rgba(255, 238, 243, 0.6);
+  animation: waveFloat 6s ease-in-out infinite reverse;
+}
+
+.wave-3 path {
+  fill: rgba(255, 238, 243, 0.9);
+  animation: waveFloat 10s ease-in-out infinite;
+}
+
+@keyframes waveFloat {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-30px);
+  }
 }
 
 .hero-content {

@@ -27,6 +27,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '发布文章', requiresAuth: true }
   },
   {
+    path: '/edit-article/:id',
+    name: 'EditArticle',
+    component: () => import('@/views/EditArticle.vue'),
+    meta: { title: '编辑文章', requiresAuth: true }
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/views/Profile.vue'),
+    meta: { title: '个人中心', requiresAuth: true }
+  },
+  {
     path: '/about',
     name: 'About',
     component: () => import('@/views/About.vue'),
@@ -43,6 +55,55 @@ const routes: RouteRecordRaw[] = [
     name: 'Register',
     component: () => import('@/views/Register.vue'),
     meta: { title: '注册' }
+  },
+  {
+    path: '/admin',
+    component: () => import('@/views/admin/AdminLayout.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true },
+    children: [
+      {
+        path: '',
+        name: 'AdminDashboard',
+        component: () => import('@/views/admin/Dashboard.vue'),
+        meta: { title: '数据概览' }
+      },
+      {
+        path: 'articles',
+        name: 'AdminArticles',
+        component: () => import('@/views/admin/ArticleManage.vue'),
+        meta: { title: '文章管理' }
+      },
+      {
+        path: 'categories',
+        name: 'AdminCategories',
+        component: () => import('@/views/admin/CategoryManage.vue'),
+        meta: { title: '分类管理' }
+      },
+      {
+        path: 'tags',
+        name: 'AdminTags',
+        component: () => import('@/views/admin/TagManage.vue'),
+        meta: { title: '标签管理' }
+      },
+      {
+        path: 'comments',
+        name: 'AdminComments',
+        component: () => import('@/views/admin/CommentManage.vue'),
+        meta: { title: '评论管理' }
+      },
+      {
+        path: 'users',
+        name: 'AdminUsers',
+        component: () => import('@/views/admin/UserManage.vue'),
+        meta: { title: '用户管理' }
+      },
+      {
+        path: 'config',
+        name: 'AdminConfig',
+        component: () => import('@/views/admin/ConfigManage.vue'),
+        meta: { title: '系统配置' }
+      }
+    ]
   }
 ]
 
@@ -61,12 +122,27 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   document.title = `${to.meta.title || '博客'} - Cocona Blog`
   
-  if (to.meta.requiresAuth) {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      next('/login')
-      return
+  const token = localStorage.getItem('token')
+  const userStr = localStorage.getItem('user')
+  let isAdmin = false
+  
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      isAdmin = user.role === 1
+    } catch {
     }
+  }
+  
+  if (to.meta.requiresAuth && !token) {
+    next('/login')
+    return
+  }
+  
+  if (to.meta.requiresAdmin && !isAdmin) {
+    alert('无权访问管理后台')
+    next('/')
+    return
   }
   
   next()

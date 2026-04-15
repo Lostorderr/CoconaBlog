@@ -48,5 +48,9 @@ export const articleApi = {
 
   search(params: { keyword: string; page?: number; pageSize?: number }): Promise<PageResponse<Article>> {
     return request.getPage<Article>('/articles/search', { params })
+  },
+
+  getMyArticles(params?: { page?: number; pageSize?: number }): Promise<PageResponse<Article>> {
+    return request.getPage<Article>('/articles/my', { params })
   }
 }
