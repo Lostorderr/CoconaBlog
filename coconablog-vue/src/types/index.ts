@@ -1,32 +1,79 @@
+export * from '../api/types'
+
 export interface Article {
   id: number
   title: string
-  summary: string
+  slug: string
+  summary: string | null
   content: string
-  cover: string
-  author: string
-  category: string
-  tags: string[]
-  views: number
-  likes: number
-  createdAt: string
-  updatedAt: string
-}
-
-export interface Category {
-  name: string
-  count: number
-}
-
-export interface Tag {
-  name: string
-  count: number
+  coverImage: string | null
+  userId: number
+  categoryId: number | null
+  status: number
+  viewCount: number
+  likeCount: number
+  commentCount: number
+  isTop: boolean
+  publishTime: string | null
+  createTime: string
+  updateTime: string
+  author?: UserInfo
+  category?: CategoryInfo
+  tags?: TagInfo[]
 }
 
 export interface UserInfo {
   id: number
   username: string
-  avatar: string
+  avatar: string | null
   email: string
-  bio: string
+  role: number
+  createTime: string
+  lastLogin: string | null
+}
+
+export interface CategoryInfo {
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  parentId: number | null
+  sort: number
+  articleCount: number
+  createTime: string
+}
+
+export interface TagInfo {
+  id: number
+  name: string
+  slug: string
+  articleCount: number
+  createTime: string
+}
+
+export interface CommentInfo {
+  id: number
+  content: string
+  userId: number
+  articleId: number
+  parentId: number | null
+  replyToId: number | null
+  likeCount: number
+  status: number
+  createTime: string
+  user: UserInfo
+  replyTo?: UserInfo
+  children?: CommentInfo[]
+}
+
+export interface SiteConfig {
+  siteName: string
+  siteDescription: string
+  siteKeywords: string
+  footerText: string
+  socialLinks: {
+    github?: string
+    twitter?: string
+    email?: string
+  }
 }

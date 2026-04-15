@@ -23,9 +23,9 @@
       <div class="footer-section">
         <h4 class="footer-title">联系方式</h4>
         <div class="footer-links">
-          <a href="#" class="footer-link">📧 邮箱联系</a>
-          <a href="#" class="footer-link">💻 GitHub</a>
-          <a href="#" class="footer-link">🐦 Twitter</a>
+          <a href="mailto:842622982@qq.com" class="footer-link">📧 842622982@qq.com</a>
+          <a href="https://github.com/Lostorderr" target="_blank" class="footer-link">💻 GitHub</a>
+          <a href="https://space.bilibili.com/113969638" target="_blank" class="footer-link">📺 Bilibili</a>
         </div>
       </div>
 

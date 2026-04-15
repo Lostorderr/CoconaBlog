@@ -1,32 +1,32 @@
 <template>
-  <div class="article-detail" v-if="article">
-    <article class="article-container">
+  <div class="article-detail">
+    <article v-if="article" class="article-container">
       <header class="article-header">
         <div class="container">
           <div class="article-meta">
-            <span class="category-tag">{{ article.category }}</span>
+            <span class="category-tag">{{ article.category?.name || '未分类' }}</span>
             <span class="meta-item">
               <span class="meta-icon">📅</span>
-              {{ formatDate(article.createdAt) }}
+              {{ formatDate(article.createTime) }}
             </span>
             <span class="meta-item">
               <span class="meta-icon">👁️</span>
-              {{ article.views }} 次浏览
+              {{ article.viewCount }} 次浏览
             </span>
           </div>
 
           <h1 class="article-title">{{ article.title }}</h1>
 
           <div class="article-tags">
-            <span v-for="tag in article.tags" :key="tag" class="tag">
-              #{{ tag }}
+            <span v-for="tag in (article.tags || [])" :key="tag.id" class="tag">
+              #{{ tag.name }}
             </span>
           </div>
 
           <div class="author-info">
             <div class="author-avatar">👤</div>
             <div class="author-details">
-              <div class="author-name">{{ article.author }}</div>
+              <div class="author-name">{{ article.author?.username || '匿名' }}</div>
               <div class="author-bio">博客作者</div>
             </div>
           </div>
@@ -34,7 +34,7 @@
       </header>
 
       <div class="article-cover container">
-        <img :src="article.cover" :alt="article.title" />
+        <img :src="article.coverImage || defaultCover" :alt="article.title" />
       </div>
 
       <div class="container content-layout">
@@ -48,14 +48,74 @@
               class="action-btn like-btn"
               :class="{ liked: isLiked }"
               @click="handleLike"
+              :disabled="likeLoading"
             >
               <span class="action-icon">{{ isLiked ? '💖' : '🤍' }}</span>
-              <span>{{ article.likes }}</span>
+              <span>{{ article.likeCount }}</span>
             </button>
             <button class="action-btn share-btn" @click="handleShare">
               <span class="action-icon">🔗</span>
               <span>分享</span>
             </button>
+          </div>
+
+          <div class="comments-section">
+            <div class="comments-header">
+              <h3 class="comments-title">
+                <span class="title-icon">💬</span>
+                <span>评论 ({{ article.commentCount }})</span>
+              </h3>
+            </div>
+
+            <div v-if="!isLoggedIn" class="login-prompt">
+              <p>请先<a href="/login">登录</a>或<a href="/register">注册</a>后发表评论</p>
+            </div>
+
+            <div v-else class="comment-form">
+              <textarea
+                v-model="newComment"
+                placeholder="写下你的评论..."
+                class="comment-input"
+                rows="4"
+              ></textarea>
+              <div class="comment-actions">
+                <button class="btn btn-primary" @click="submitComment" :disabled="!newComment.trim()">
+                  发表评论
+                </button>
+              </div>
+            </div>
+
+            <div class="comments-list">
+              <div
+                v-for="comment in comments"
+                :key="comment.id"
+                class="comment-item"
+              >
+                <div class="comment-avatar">👤</div>
+                <div class="comment-content">
+                  <div class="comment-header">
+                    <span class="comment-author">{{ comment.user?.username || '匿名' }}</span>
+                    <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
+                  </div>
+                  <div class="comment-body">{{ comment.content }}</div>
+                  <div class="comment-actions">
+                    <button class="comment-action-btn" @click="handleCommentLike(comment)">
+                      <span>{{ comment.isLiked ? '💖' : '🤍' }}</span>
+                      <span>{{ comment.likeCount }}</span>
+                    </button>
+                    <button class="comment-action-btn" @click="replyToComment(comment)">
+                      <span>💬</span>
+                      <span>回复</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="comments.length === 0" class="no-comments">
+                <span class="no-comments-icon">💭</span>
+                <p>暂无评论，快来发表第一条评论吧！</p>
+              </div>
+            </div>
           </div>
 
           <div class="article-navigation">
@@ -90,11 +150,11 @@
                 @click="navigateToArticle(related.id)"
               >
                 <div class="related-cover">
-                  <img :src="related.cover" :alt="related.title" />
+                  <img :src="related.coverImage || defaultCover" :alt="related.title" />
                 </div>
                 <div class="related-info">
                   <h4 class="related-title">{{ related.title }}</h4>
-                  <div class="related-date">{{ formatDate(related.createdAt) }}</div>
+                  <div class="related-date">{{ formatDate(related.createTime) }}</div>
                 </div>
               </div>
             </div>
@@ -102,17 +162,26 @@
         </aside>
       </div>
     </article>
-  </div>
 
-  <div v-else class="not-found">
-    <div class="container">
-      <div class="not-found-content">
-        <div class="not-found-icon">🔍</div>
-        <h2 class="not-found-title">文章未找到</h2>
-        <p class="not-found-desc">抱歉，这篇文章可能已经被删除或不存在</p>
-        <router-link to="/articles" class="btn btn-primary">
-          返回文章列表
-        </router-link>
+    <div v-else-if="loading" class="loading-state">
+      <div class="container">
+        <div class="loading-content">
+          <div class="loading-spinner">🌸</div>
+          <p class="loading-text">加载中...</p>
+        </div>
+      </div>
+    </div>
+
+    <div v-else class="not-found">
+      <div class="container">
+        <div class="not-found-content">
+          <div class="not-found-icon">🔍</div>
+          <h2 class="not-found-title">文章未找到</h2>
+          <p class="not-found-desc">抱歉，这篇文章可能已经被删除或不存在</p>
+          <router-link to="/articles" class="btn btn-primary">
+            返回文章列表
+          </router-link>
+        </div>
       </div>
     </div>
   </div>
@@ -121,14 +190,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useBlogStore, type Article } from '@/store/blog'
+import { useBlogStore, type ArticleDetail, type CommentInfo } from '@/store/blog'
+import { useAuth, useLikes } from '@/composables/useApi'
 
 const route = useRoute()
 const router = useRouter()
 const blogStore = useBlogStore()
+const { isLoggedIn } = useAuth()
+const { like, unlike } = useLikes()
 
-const article = ref<Article | null>(null)
+const article = ref<ArticleDetail | null>(null)
+const loading = ref(true)
 const isLiked = ref(false)
+const likeLoading = ref(false)
+const comments = ref<CommentInfo[]>([])
+const newComment = ref('')
+const defaultCover = 'https://picsum.photos/seed/default/800/400'
 
 const renderedContent = computed(() => {
   if (!article.value) return ''
@@ -140,26 +217,50 @@ const relatedArticles = computed(() => {
   return blogStore.articles
     .filter(a => 
       a.id !== article.value?.id && 
-      (a.category === article.value?.category || 
-       a.tags.some(tag => article.value?.tags.includes(tag)))
+      (a.categoryId === article.value?.categoryId)
     )
     .slice(0, 3)
 })
 
-onMounted(() => {
-  loadArticle()
+onMounted(async () => {
+  await loadArticle()
 })
 
 watch(() => route.params.id, () => {
   loadArticle()
 })
 
-function loadArticle() {
+async function loadArticle() {
   const id = parseInt(route.params.id as string)
-  article.value = blogStore.getArticleById(id)
+  if (isNaN(id)) {
+    article.value = null
+    loading.value = false
+    return
+  }
   
-  if (article.value) {
-    blogStore.viewArticle(id)
+  loading.value = true
+  try {
+    article.value = await blogStore.fetchArticleById(id)
+    if (article.value) {
+      blogStore.viewArticle(id)
+      await loadComments(id)
+      isLiked.value = await blogStore.checkArticleLiked(id)
+    }
+  } catch {
+    article.value = null
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadComments(articleId: number) {
+  try {
+    const result = await blogStore.fetchComments(articleId)
+    if (result) {
+      comments.value = result.list
+    }
+  } catch {
+    comments.value = []
   }
 }
 
@@ -191,14 +292,30 @@ function formatDate(date: string): string {
   return d.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }
 
-function handleLike() {
-  if (article.value) {
-    blogStore.likeArticle(article.value.id)
-    isLiked.value = true
+async function handleLike() {
+  if (!article.value || likeLoading.value) return
+  
+  likeLoading.value = true
+  try {
+    if (isLiked.value) {
+      await unlike({ targetId: article.value.id, targetType: 0 })
+      article.value.likeCount--
+      isLiked.value = false
+    } else {
+      await like({ targetId: article.value.id, targetType: 0 })
+      article.value.likeCount++
+      isLiked.value = true
+    }
+  } catch (e: any) {
+    alert(e.response?.data?.message || '操作失败')
+  } finally {
+    likeLoading.value = false
   }
 }
 
@@ -212,6 +329,40 @@ function handleShare() {
     navigator.clipboard.writeText(window.location.href)
     alert('链接已复制到剪贴板！')
   }
+}
+
+async function submitComment() {
+  if (!newComment.value.trim() || !article.value) return
+  
+  try {
+    await blogStore.createComment({
+      content: newComment.value.trim(),
+      articleId: article.value.id
+    })
+    newComment.value = ''
+    article.value.commentCount++
+    await loadComments(article.value.id)
+  } catch (e: any) {
+    alert(e.response?.data?.message || '发表评论失败')
+  }
+}
+
+async function handleCommentLike(comment: CommentInfo) {
+  try {
+    if (comment.isLiked) {
+      await blogStore.unlikeComment(comment.id)
+      comment.likeCount--
+    } else {
+      await blogStore.likeComment(comment.id)
+      comment.likeCount++
+    }
+    comment.isLiked = !comment.isLiked
+  } catch {
+  }
+}
+
+function replyToComment(comment: CommentInfo) {
+  newComment.value = `@${comment.user?.username || '匿名'} `
 }
 
 function navigateToArticle(id: number) {
@@ -370,12 +521,18 @@ function navigateToArticle(id: number) {
   font-weight: 500;
   color: var(--text-secondary);
   transition: all var(--transition-normal);
+  cursor: pointer;
 }
 
-.action-btn:hover {
+.action-btn:hover:not(:disabled) {
   border-color: var(--primary-color);
   color: var(--primary-color);
   transform: translateY(-2px);
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .like-btn.liked {
@@ -386,6 +543,161 @@ function navigateToArticle(id: number) {
 
 .action-icon {
   font-size: 1.3rem;
+}
+
+.comments-section {
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-xl);
+}
+
+.comments-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.comments-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.title-icon {
+  font-size: 1.5rem;
+}
+
+.login-prompt {
+  text-align: center;
+  padding: var(--spacing-xl);
+  background: var(--bg-hover);
+  border-radius: var(--border-radius-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.login-prompt p {
+  color: var(--text-secondary);
+}
+
+.login-prompt a {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.comment-form {
+  margin-bottom: var(--spacing-xl);
+}
+
+.comment-input {
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: 1rem;
+  font-family: var(--font-sans);
+  resize: vertical;
+  transition: all var(--transition-normal);
+  margin-bottom: var(--spacing-md);
+}
+
+.comment-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.1);
+}
+
+.comment-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.comment-item {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--bg-hover);
+  border-radius: var(--border-radius-sm);
+}
+
+.comment-avatar {
+  width: 45px;
+  height: 45px;
+  background: var(--gradient-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.comment-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.comment-author {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.comment-time {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.comment-body {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-sm);
+}
+
+.comment-actions {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.comment-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+}
+
+.comment-action-btn:hover {
+  color: var(--primary-color);
+}
+
+.no-comments {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  color: var(--text-muted);
+}
+
+.no-comments-icon {
+  font-size: 3rem;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
 }
 
 .article-navigation {
@@ -430,10 +742,6 @@ function navigateToArticle(id: number) {
   margin-bottom: var(--spacing-md);
   padding-bottom: var(--spacing-sm);
   border-bottom: 2px solid var(--border-color);
-}
-
-.title-icon {
-  font-size: 1.3rem;
 }
 
 .toc-empty {
@@ -499,6 +807,33 @@ function navigateToArticle(id: number) {
   opacity: 0.7;
 }
 
+.loading-state {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-content {
+  text-align: center;
+}
+
+.loading-spinner {
+  font-size: 4rem;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  margin-top: var(--spacing-md);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
 .not-found {
   min-height: 60vh;
   display: flex;
@@ -559,6 +894,10 @@ function navigateToArticle(id: number) {
   .action-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .comments-section {
+    padding: var(--spacing-lg);
   }
 }
 </style>

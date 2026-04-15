@@ -33,13 +33,13 @@
       <div class="category-list">
         <div
           v-for="category in blogStore.categories"
-          :key="category"
+          :key="category.id"
           class="category-item"
-          @click="filterByCategory(category)"
+          @click="filterByCategory(category.id)"
         >
-          <span class="category-name">{{ category }}</span>
+          <span class="category-name">{{ category.name }}</span>
           <span class="category-count">
-            {{ blogStore.getArticlesByCategory(category).length }}
+            {{ category.articleCount }}
           </span>
         </div>
       </div>
@@ -53,11 +53,11 @@
       <div class="tag-cloud">
         <span
           v-for="tag in blogStore.allTags"
-          :key="tag"
+          :key="tag.id"
           class="tag"
-          @click="filterByTag(tag)"
+          @click="filterByTag(tag.id)"
         >
-          #{{ tag }}
+          #{{ tag.name }}
         </span>
       </div>
     </div>
@@ -90,11 +90,17 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBlogStore } from '@/store/blog'
 
 const router = useRouter()
 const blogStore = useBlogStore()
+
+onMounted(() => {
+  blogStore.fetchCategories()
+  blogStore.fetchTags()
+})
 
 function formatNumber(num: number): string {
   if (num >= 1000) {
@@ -103,17 +109,17 @@ function formatNumber(num: number): string {
   return num.toString()
 }
 
-function filterByCategory(category: string) {
+function filterByCategory(categoryId: number) {
   router.push({
     path: '/articles',
-    query: { category }
+    query: { category: categoryId }
   })
 }
 
-function filterByTag(tag: string) {
+function filterByTag(tagId: number) {
   router.push({
     path: '/articles',
-    query: { tag }
+    query: { tag: tagId }
   })
 }
 </script>

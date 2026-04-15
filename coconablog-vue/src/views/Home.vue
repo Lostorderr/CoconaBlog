@@ -45,12 +45,23 @@
         </router-link>
       </div>
 
-      <div class="articles-grid">
+      <div v-if="blogStore.loading" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>加载中...</p>
+      </div>
+
+      <div v-else-if="latestArticles.length > 0" class="articles-grid">
         <ArticleCard
           v-for="article in latestArticles"
           :key="article.id"
           :article="article"
         />
+      </div>
+
+      <div v-else class="empty-state">
+        <div class="empty-icon">📝</div>
+        <h3 class="empty-title">暂无文章</h3>
+        <p class="empty-desc">敬请期待更多精彩内容~</p>
       </div>
     </section>
 
@@ -123,11 +134,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useBlogStore } from '@/store/blog'
 import ArticleCard from '@/components/ArticleCard.vue'
 
 const blogStore = useBlogStore()
+
+onMounted(async () => {
+  await blogStore.fetchArticles({ pageSize: 3 })
+  await blogStore.fetchTags()
+})
 
 const latestArticles = computed(() => 
   blogStore.articles.slice(0, 3)
@@ -310,6 +326,51 @@ function formatNumber(num: number): string {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--spacing-lg);
+}
+
+.loading-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto var(--spacing-md);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-md);
+  opacity: 0.5;
+}
+
+.empty-title {
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.empty-desc {
+  color: var(--text-secondary);
 }
 
 .features-section {

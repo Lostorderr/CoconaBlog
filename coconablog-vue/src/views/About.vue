@@ -145,17 +145,17 @@
             </h2>
           </div>
           <div class="contact-links">
-            <a href="#" class="contact-item">
+            <a href="mailto:842622982@qq.com" class="contact-item">
               <span class="contact-icon">📧</span>
-              <span class="contact-text">邮箱联系</span>
+              <span class="contact-text">842622982@qq.com</span>
             </a>
-            <a href="#" class="contact-item">
+            <a href="https://github.com/Lostorderr" target="_blank" class="contact-item">
               <span class="contact-icon">💻</span>
               <span class="contact-text">GitHub</span>
             </a>
-            <a href="#" class="contact-item">
-              <span class="contact-icon">🐦</span>
-              <span class="contact-text">Twitter</span>
+            <a href="https://space.bilibili.com/113969638" target="_blank" class="contact-item">
+              <span class="contact-icon">📺</span>
+              <span class="contact-text">Bilibili</span>
             </a>
           </div>
         </section>

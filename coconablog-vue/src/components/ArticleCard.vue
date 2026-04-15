@@ -1,43 +1,43 @@
 <template>
   <div class="article-card card" @click="navigateToArticle">
     <div class="card-cover">
-      <img :src="article.cover" :alt="article.title" />
+      <img :src="article.coverImage || defaultCover" :alt="article.title" />
       <div class="cover-overlay">
-        <span class="category-tag">{{ article.category }}</span>
+        <span class="category-tag">{{ article.category?.name || '未分类' }}</span>
       </div>
     </div>
     
     <div class="card-content">
       <h3 class="card-title">{{ article.title }}</h3>
-      <p class="card-summary">{{ article.summary }}</p>
+      <p class="card-summary">{{ article.summary || '暂无摘要' }}</p>
       
       <div class="card-tags">
-        <span v-for="tag in article.tags.slice(0, 3)" :key="tag" class="tag">
-          #{{ tag }}
+        <span v-for="tag in (article.tags || []).slice(0, 3)" :key="tag.id" class="tag">
+          #{{ tag.name }}
         </span>
       </div>
       
       <div class="card-footer">
         <div class="author-info">
           <div class="author-avatar">👤</div>
-          <span class="author-name">{{ article.author }}</span>
+          <span class="author-name">{{ article.author?.username || '匿名' }}</span>
         </div>
         
         <div class="article-stats">
           <span class="stat-item">
             <span class="stat-icon">👁️</span>
-            <span>{{ formatNumber(article.views) }}</span>
+            <span>{{ formatNumber(article.viewCount) }}</span>
           </span>
           <span class="stat-item">
             <span class="stat-icon">💖</span>
-            <span>{{ formatNumber(article.likes) }}</span>
+            <span>{{ formatNumber(article.likeCount) }}</span>
           </span>
         </div>
       </div>
       
       <div class="card-date">
         <span class="date-icon">📅</span>
-        <span>{{ formatDate(article.createdAt) }}</span>
+        <span>{{ formatDate(article.createTime) }}</span>
       </div>
     </div>
   </div>
@@ -52,6 +52,7 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
+const defaultCover = 'https://picsum.photos/seed/default/800/400'
 
 function navigateToArticle() {
   router.push(`/article/${props.article.id}`)

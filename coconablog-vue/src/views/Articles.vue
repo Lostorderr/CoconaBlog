@@ -18,13 +18,20 @@
           <div class="filter-bar">
             <div class="filter-tabs">
               <button
-                v-for="cat in ['全部', ...blogStore.categories]"
-                :key="cat"
                 class="filter-tab"
-                :class="{ active: currentCategory === cat }"
-                @click="filterByCategory(cat)"
+                :class="{ active: currentCategoryId === null }"
+                @click="filterByCategory(null)"
               >
-                {{ cat }}
+                全部
+              </button>
+              <button
+                v-for="cat in blogStore.categories"
+                :key="cat.id"
+                class="filter-tab"
+                :class="{ active: currentCategoryId === cat.id }"
+                @click="filterByCategory(cat.id)"
+              >
+                {{ cat.name }}
               </button>
             </div>
 
@@ -39,7 +46,12 @@
             </div>
           </div>
 
-          <div v-if="filteredArticles.length > 0" class="articles-list">
+          <div v-if="blogStore.loading" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>加载中...</p>
+          </div>
+
+          <div v-else-if="blogStore.articles.length > 0" class="articles-list">
             <ArticleCard
               v-for="article in filteredArticles"
               :key="article.id"
@@ -61,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBlogStore } from '@/store/blog'
 import ArticleCard from '@/components/ArticleCard.vue'
@@ -72,45 +84,56 @@ const router = useRouter()
 const blogStore = useBlogStore()
 
 const searchQuery = ref('')
-const currentCategory = ref('全部')
+const currentCategoryId = ref<number | null>(null)
 
-onMounted(() => {
-  if (route.query.category) {
-    currentCategory.value = route.query.category as string
-  }
-  if (route.query.tag) {
-    searchQuery.value = route.query.tag as string
-  }
-  if (route.query.search) {
-    searchQuery.value = route.query.search as string
-  }
+onMounted(async () => {
+  await blogStore.fetchCategories()
+  await loadArticles()
 })
+
+watch(() => route.query, (query) => {
+  if (query.category) {
+    currentCategoryId.value = Number(query.category)
+  } else {
+    currentCategoryId.value = null
+  }
+  if (query.tag) {
+    searchQuery.value = String(query.tag)
+  }
+  if (query.search) {
+    searchQuery.value = String(query.search)
+  }
+  loadArticles()
+}, { immediate: true })
+
+async function loadArticles() {
+  await blogStore.fetchArticles({
+    categoryId: currentCategoryId.value || undefined,
+    keyword: searchQuery.value || undefined
+  })
+}
 
 const filteredArticles = computed(() => {
   let articles = blogStore.articles
-
-  if (currentCategory.value !== '全部') {
-    articles = articles.filter(a => a.category === currentCategory.value)
-  }
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     articles = articles.filter(a =>
       a.title.toLowerCase().includes(query) ||
-      a.summary.toLowerCase().includes(query) ||
-      a.tags.some(tag => tag.toLowerCase().includes(query))
+      (a.summary && a.summary.toLowerCase().includes(query)) ||
+      (a.tags && a.tags.some(tag => tag.name.toLowerCase().includes(query)))
     )
   }
 
   return articles
 })
 
-function filterByCategory(category: string) {
-  currentCategory.value = category
-  if (category === '全部') {
+function filterByCategory(categoryId: number | null) {
+  currentCategoryId.value = categoryId
+  if (categoryId === null) {
     router.push({ path: '/articles' })
   } else {
-    router.push({ path: '/articles', query: { category } })
+    router.push({ path: '/articles', query: { category: categoryId } })
   }
 }
 </script>
@@ -237,6 +260,27 @@ function filterByCategory(category: string) {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: var(--spacing-lg);
+}
+
+.loading-state {
+  text-align: center;
+  padding: var(--spacing-2xl);
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto var(--spacing-md);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .empty-state {

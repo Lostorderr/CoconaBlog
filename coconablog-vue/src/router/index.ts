@@ -21,10 +21,28 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '文章详情' }
   },
   {
+    path: '/create-article',
+    name: 'CreateArticle',
+    component: () => import('@/views/CreateArticle.vue'),
+    meta: { title: '发布文章', requiresAuth: true }
+  },
+  {
     path: '/about',
     name: 'About',
     component: () => import('@/views/About.vue'),
     meta: { title: '关于' }
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/Login.vue'),
+    meta: { title: '登录' }
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/Register.vue'),
+    meta: { title: '注册' }
   }
 ]
 
@@ -42,6 +60,15 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   document.title = `${to.meta.title || '博客'} - Cocona Blog`
+  
+  if (to.meta.requiresAuth) {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      next('/login')
+      return
+    }
+  }
+  
   next()
 })
 
