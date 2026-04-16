@@ -4,6 +4,7 @@ import cn.wujizone.coconablog.filter.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -33,11 +34,13 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/v1/users/auth/**").permitAll()
-                .requestMatchers("/api/v1/articles/**").permitAll()
-                .requestMatchers("/api/v1/categories/**").permitAll()
-                .requestMatchers("/api/v1/tags/**").permitAll()
-                .requestMatchers("/api/v1/comments/article/**").permitAll()
+                .requestMatchers("/api/v1/users/auth/login").permitAll()
+                .requestMatchers("/api/v1/users/auth/register").permitAll()
+                .requestMatchers("/api/v1/users/auth/forgot-password/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/articles/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/categories/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/tags/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/comments/article/**").permitAll()
                 .requestMatchers("/api/v1/configs/public").permitAll()
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()

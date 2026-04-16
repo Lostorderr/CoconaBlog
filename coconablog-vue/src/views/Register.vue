@@ -42,6 +42,28 @@
             />
           </div>
 
+          <div class="form-group">
+            <label class="form-label">密保问题</label>
+            <input
+              v-model="form.securityQuestion"
+              type="text"
+              class="form-input"
+              placeholder="例如：你的小学名称是？"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">密保答案</label>
+            <input
+              v-model="form.securityAnswer"
+              type="text"
+              class="form-input"
+              placeholder="请输入密保答案（用于找回密码）"
+              required
+            />
+          </div>
+
           <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
             <span v-if="loading">注册中...</span>
             <span v-else>注册</span>
@@ -72,7 +94,9 @@ const { register, loading } = useAuth()
 const form = reactive({
   username: '',
   email: '',
-  password: ''
+  password: '',
+  securityQuestion: '',
+  securityAnswer: ''
 })
 
 const error = ref('')

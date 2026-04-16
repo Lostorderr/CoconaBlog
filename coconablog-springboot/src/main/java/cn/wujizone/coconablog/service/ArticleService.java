@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,19 +28,31 @@ public class ArticleService {
     private final TagService tagService;
     
     public PageResult<ArticleVO> getArticleList(Integer page, Integer pageSize, Long categoryId,
-                                                  Long tagId, Integer status, String keyword,
-                                                  String orderBy, String order) {
+                                                  Long tagId, Integer status, String keyword) {
         if (page == null || page < 1) page = 1;
         if (pageSize == null || pageSize < 1) pageSize = 10;
-        if (orderBy == null) orderBy = "publish_time";
-        if (order == null) order = "desc";
         
         int offset = (page - 1) * pageSize;
-        List<Article> articles = articleMapper.findByCondition(categoryId, tagId, keyword, status, orderBy, order, offset, pageSize);
-        Long total = articleMapper.countByCondition(categoryId, tagId, keyword, status);
+        List<Article> articles = articleMapper.findByCondition(categoryId, tagId, keyword, status, null, offset, pageSize);
+        Long total = articleMapper.countByCondition(categoryId, tagId, keyword, status, null);
         
         List<ArticleVO> voList = articles.stream()
                 .map(this::toArticleVO)
+                .collect(Collectors.toList());
+        
+        return new PageResult<>(voList, total, page, pageSize);
+    }
+    
+    public PageResult<ArticleVO> getMyArticles(Long userId, Integer page, Integer pageSize) {
+        if (page == null || page < 1) page = 1;
+        if (pageSize == null || pageSize < 1) pageSize = 10;
+        
+        int offset = (page - 1) * pageSize;
+        List<Article> articles = articleMapper.findByCondition(null, null, null, null, userId, offset, pageSize);
+        Long total = articleMapper.countByCondition(null, null, null, null, userId);
+        
+        List<ArticleVO> voList = articles.stream()
+                .map(this::toArticleVODetail)
                 .collect(Collectors.toList());
         
         return new PageResult<>(voList, total, page, pageSize);
@@ -65,7 +76,7 @@ public class ArticleService {
     
     @Transactional
     public ArticleVO createArticle(Long userId, ArticleRequest request) {
-        if (articleMapper.findBySlug(request.getSlug()) != null) {
+        if (request.getSlug() != null && articleMapper.findBySlug(request.getSlug()) != null) {
             throw new RuntimeException("slug已存在");
         }
         
@@ -154,7 +165,7 @@ public class ArticleService {
     }
     
     @Transactional
-    public void deleteArticle(Long id, Long userId) {
+    public void softDeleteArticle(Long id, Long userId) {
         Article article = articleMapper.findById(id);
         if (article == null) {
             throw new RuntimeException("文章不存在");
@@ -162,8 +173,7 @@ public class ArticleService {
         if (!article.getUserId().equals(userId)) {
             throw new RuntimeException("无权删除此文章");
         }
-        articleTagMapper.deleteByArticleId(id);
-        articleMapper.deleteById(id);
+        articleMapper.updateStatus(id, 2);
     }
     
     @Transactional

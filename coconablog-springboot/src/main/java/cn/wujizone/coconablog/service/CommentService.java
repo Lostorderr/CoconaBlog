@@ -1,6 +1,7 @@
 package cn.wujizone.coconablog.service;
 
 import cn.wujizone.coconablog.common.PageResult;
+import cn.wujizone.coconablog.dto.ArticleVO;
 import cn.wujizone.coconablog.dto.CommentVO;
 import cn.wujizone.coconablog.dto.UserVO;
 import cn.wujizone.coconablog.entity.Comment;
@@ -11,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,6 +21,7 @@ public class CommentService {
     private final CommentMapper commentMapper;
     private final ArticleMapper articleMapper;
     private final UserService userService;
+    private final ArticleService articleService;
     
     public PageResult<CommentVO> getCommentsByArticleId(Long articleId, Integer page, Integer pageSize,
                                                          String orderBy, String order) {
@@ -34,6 +35,39 @@ public class CommentService {
         Long total = commentMapper.countByArticleId(articleId);
         
         List<CommentVO> voList = comments.stream()
+                .map(c -> toCommentVO(c, true))
+                .collect(Collectors.toList());
+        
+        return new PageResult<>(voList, total, page, pageSize);
+    }
+    
+    public PageResult<CommentVO> getAllComments(Integer page, Integer pageSize, Integer status) {
+        if (page == null || page < 1) page = 1;
+        if (pageSize == null || pageSize < 1) pageSize = 20;
+        
+        int offset = (page - 1) * pageSize;
+        List<Comment> comments = commentMapper.findAll(status, offset, pageSize);
+        Long total = commentMapper.countAll(status);
+        
+        List<CommentVO> voList = comments.stream()
+                .map(c -> toCommentVO(c, true))
+                .collect(Collectors.toList());
+        
+        return new PageResult<>(voList, total, page, pageSize);
+    }
+    
+    public PageResult<CommentVO> getMyComments(Long userId, Integer page, Integer pageSize) {
+        if (page == null || page < 1) page = 1;
+        if (pageSize == null || pageSize < 1) pageSize = 20;
+        
+        int offset = (page - 1) * pageSize;
+        List<Comment> comments = commentMapper.findByUserId(userId);
+        Long total = (long) comments.size();
+        
+        int end = Math.min(offset + pageSize, comments.size());
+        List<Comment> paged = comments.subList(offset, end);
+        
+        List<CommentVO> voList = paged.stream()
                 .map(c -> toCommentVO(c, true))
                 .collect(Collectors.toList());
         
@@ -71,6 +105,15 @@ public class CommentService {
     }
     
     @Transactional
+    public void updateCommentStatus(Long id, Integer status) {
+        Comment comment = commentMapper.findById(id);
+        if (comment == null) {
+            throw new RuntimeException("评论不存在");
+        }
+        commentMapper.updateStatus(id, status);
+    }
+    
+    @Transactional
     public void updateLikeCount(Long id, Integer delta) {
         commentMapper.updateLikeCount(id, delta);
     }
@@ -92,6 +135,18 @@ public class CommentService {
             vo.setUser(userService.getUserById(comment.getUserId()));
             if (comment.getReplyToId() != null) {
                 vo.setReplyTo(userService.getUserById(comment.getReplyToId()));
+            }
+            if (comment.getArticleId() != null) {
+                try {
+                    ArticleVO article = articleService.getArticleById(comment.getArticleId());
+                    if (article != null) {
+                        CommentVO.ArticleInfo articleInfo = new CommentVO.ArticleInfo();
+                        articleInfo.setId(article.getId());
+                        articleInfo.setTitle(article.getTitle());
+                        vo.setArticle(articleInfo);
+                    }
+                } catch (Exception ignored) {
+                }
             }
         }
         

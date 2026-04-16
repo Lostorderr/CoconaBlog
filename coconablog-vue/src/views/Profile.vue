@@ -160,9 +160,10 @@ import { useAuth } from '@/composables/useApi'
 import { useBlogStore, type Article, type CommentInfo } from '@/store/blog'
 import { articleApi } from '@/api/article'
 import { commentApi } from '@/api/comment'
+import { authApi } from '@/api/auth'
 
 const router = useRouter()
-const { user, isLoggedIn } = useAuth()
+const { user, isLoggedIn, fetchProfile } = useAuth()
 const blogStore = useBlogStore()
 
 const activeTab = ref('articles')
@@ -286,6 +287,12 @@ async function handleRestore(article: Article) {
 async function handleUpdateProfile() {
   updating.value = true
   try {
+    await authApi.updateProfile({
+      username: profileForm.username,
+      email: profileForm.email,
+      avatar: profileForm.avatar
+    })
+    await fetchProfile()
     alert('个人资料更新成功')
   } catch (e: any) {
     alert(e.response?.data?.message || '更新失败')

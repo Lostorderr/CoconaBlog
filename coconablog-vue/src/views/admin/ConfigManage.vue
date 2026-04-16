@@ -77,6 +77,20 @@ import { configApi } from '@/api/config'
 const saving = ref(false)
 const loading = ref(false)
 
+const keyMap: Record<string, string> = {
+  siteName: 'site_name',
+  siteDescription: 'site_description',
+  siteKeywords: 'site_keywords',
+  footerText: 'footer_text',
+  socialGithub: 'social_github',
+  socialBilibili: 'social_bilibili',
+  contactEmail: 'contact_email'
+}
+
+const reverseKeyMap: Record<string, string> = Object.fromEntries(
+  Object.entries(keyMap).map(([k, v]) => [v, k])
+)
+
 const configs = reactive({
   siteName: 'Cocona Blog',
   siteDescription: '',
@@ -100,7 +114,10 @@ async function loadConfigs() {
     const list = response.data || []
     
     list.forEach((item: any) => {
-      if (item.key in configs) {
+      const camelKey = reverseKeyMap[item.key]
+      if (camelKey && camelKey in configs) {
+        (configs as any)[camelKey] = item.value || ''
+      } else if (camelKey) {
         (configs as any)[item.key] = item.value || ''
       } else {
         otherConfigs.value.push({
@@ -119,13 +136,13 @@ async function saveAllConfigs() {
   saving.value = true
   try {
     const allConfigs = [
-      { key: 'siteName', value: configs.siteName },
-      { key: 'siteDescription', value: configs.siteDescription },
-      { key: 'siteKeywords', value: configs.siteKeywords },
-      { key: 'footerText', value: configs.footerText },
-      { key: 'socialGithub', value: configs.socialGithub },
-      { key: 'socialBilibili', value: configs.socialBilibili },
-      { key: 'contactEmail', value: configs.contactEmail },
+      { key: keyMap.siteName, value: configs.siteName },
+      { key: keyMap.siteDescription, value: configs.siteDescription },
+      { key: keyMap.siteKeywords, value: configs.siteKeywords },
+      { key: keyMap.footerText, value: configs.footerText },
+      { key: keyMap.socialGithub, value: configs.socialGithub },
+      { key: keyMap.socialBilibili, value: configs.socialBilibili },
+      { key: keyMap.contactEmail, value: configs.contactEmail },
       ...otherConfigs.value
     ]
 

@@ -34,6 +34,18 @@ export interface RegisterRequest {
   username: string
   password: string
   email: string
+  securityQuestion: string
+  securityAnswer: string
+}
+
+export interface VerifySecurityRequest {
+  username: string
+  securityAnswer: string
+}
+
+export interface ResetPasswordRequest {
+  username: string
+  newPassword: string
 }
 
 export interface UserInfo {
@@ -42,6 +54,8 @@ export interface UserInfo {
   avatar: string | null
   email: string
   role: number
+  status: number
+  securityQuestion?: string | null
   createTime: string
   lastLogin: string | null
 }
@@ -188,6 +202,8 @@ export interface CommentInfo {
   createTime: string
   user: UserInfo
   replyTo?: UserInfo
+  article?: { id: number; title: string }
+  isLiked?: boolean
   children?: CommentInfo[]
 }
 

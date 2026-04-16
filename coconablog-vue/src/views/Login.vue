@@ -40,6 +40,8 @@
         <div class="login-footer">
           <p>还没有账户？</p>
           <router-link to="/register" class="link">立即注册</router-link>
+          <span style="margin: 0 8px; color: var(--border-color);">|</span>
+          <router-link to="/forgot-password" class="link">忘记密码？</router-link>
         </div>
 
         <div v-if="error" class="error-message">

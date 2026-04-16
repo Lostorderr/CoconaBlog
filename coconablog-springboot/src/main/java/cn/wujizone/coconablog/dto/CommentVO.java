@@ -17,5 +17,12 @@ public class CommentVO {
     private LocalDateTime createTime;
     private UserVO user;
     private UserVO replyTo;
+    private ArticleInfo article;
     private List<CommentVO> children;
+    
+    @Data
+    public static class ArticleInfo {
+        private Long id;
+        private String title;
+    }
 }

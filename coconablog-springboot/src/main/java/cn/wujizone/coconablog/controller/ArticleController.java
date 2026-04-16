@@ -24,10 +24,16 @@ public class ArticleController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long tagId,
             @RequestParam(required = false) Integer status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String orderBy,
-            @RequestParam(required = false) String order) {
-        return Result.success(articleService.getArticleList(page, pageSize, categoryId, tagId, status, keyword, orderBy, order));
+            @RequestParam(required = false) String keyword) {
+        return Result.success(articleService.getArticleList(page, pageSize, categoryId, tagId, status, keyword));
+    }
+    
+    @GetMapping("/my")
+    public Result<PageResult<ArticleVO>> getMyArticles(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize) {
+        return Result.success(articleService.getMyArticles(userId, page, pageSize));
     }
     
     @GetMapping("/{id}")
@@ -56,7 +62,7 @@ public class ArticleController {
     @DeleteMapping("/{id}")
     public Result<Void> deleteArticle(@PathVariable Long id,
                                        @AuthenticationPrincipal Long userId) {
-        articleService.deleteArticle(id, userId);
+        articleService.softDeleteArticle(id, userId);
         return Result.success();
     }
     

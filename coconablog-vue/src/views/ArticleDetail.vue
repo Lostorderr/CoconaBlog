@@ -72,6 +72,10 @@
             </div>
 
             <div v-else class="comment-form">
+              <div v-if="replyTarget" class="reply-indicator">
+                <span>回复 {{ replyTarget.user?.username || '匿名' }}</span>
+                <button class="cancel-reply-btn" @click="replyTarget = null; newComment = ''">✕ 取消回复</button>
+              </div>
               <textarea
                 v-model="newComment"
                 placeholder="写下你的评论..."
@@ -90,16 +94,20 @@
                 v-for="comment in comments"
                 :key="comment.id"
                 class="comment-item"
+                :class="{ 'is-reply': comment.parentId }"
               >
                 <div class="comment-avatar">👤</div>
                 <div class="comment-content">
                   <div class="comment-header">
                     <span class="comment-author">{{ comment.user?.username || '匿名' }}</span>
+                    <span v-if="comment.replyTo" class="reply-to">
+                      回复 <span class="reply-name">@{{ comment.replyTo.username }}</span>
+                    </span>
                     <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
                   </div>
                   <div class="comment-body">{{ comment.content }}</div>
                   <div class="comment-actions">
-                    <button class="comment-action-btn" @click="handleCommentLike(comment)">
+                    <button class="comment-action-btn" @click="handleCommentLike(comment)" :disabled="comment._likeLoading">
                       <span>{{ comment.isLiked ? '💖' : '🤍' }}</span>
                       <span>{{ comment.likeCount }}</span>
                     </button>
@@ -133,7 +141,18 @@
               <span>目录</span>
             </h3>
             <div class="toc">
-              <div class="toc-empty">暂无目录</div>
+              <div v-if="tocItems.length === 0" class="toc-empty">暂无目录</div>
+              <nav v-else class="toc-nav">
+                <a
+                  v-for="item in tocItems"
+                  :key="item.id"
+                  :href="`#${item.id}`"
+                  class="toc-link"
+                  :style="{ paddingLeft: `${(item.level - 1) * 12 + 8}px` }"
+                >
+                  {{ item.text }}
+                </a>
+              </nav>
             </div>
           </div>
 
@@ -192,6 +211,9 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBlogStore, type ArticleDetail, type CommentInfo } from '@/store/blog'
 import { useAuth, useLikes } from '@/composables/useApi'
+import { likeApi } from '@/api/like'
+import { renderMarkdown, type TocItem } from '@/utils/markdown'
+import 'highlight.js/styles/github.css'
 
 const route = useRoute()
 const router = useRouter()
@@ -205,11 +227,15 @@ const isLiked = ref(false)
 const likeLoading = ref(false)
 const comments = ref<CommentInfo[]>([])
 const newComment = ref('')
+const replyTarget = ref<CommentInfo | null>(null)
+const tocItems = ref<TocItem[]>([])
 const defaultCover = 'https://picsum.photos/seed/default/800/400'
 
 const renderedContent = computed(() => {
   if (!article.value) return ''
-  return renderMarkdown(article.value.content)
+  const { html, toc } = renderMarkdown(article.value.content)
+  tocItems.value = toc
+  return html
 })
 
 const relatedArticles = computed(() => {
@@ -258,33 +284,24 @@ async function loadComments(articleId: number) {
     const result = await blogStore.fetchComments(articleId)
     if (result) {
       comments.value = result.list
+      if (isLoggedIn.value) {
+        await checkCommentLikeStatus()
+      }
     }
   } catch {
     comments.value = []
   }
 }
 
-function renderMarkdown(content: string): string {
-  let html = content
-  
-  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>')
-  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>')
-  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>')
-  
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>')
-  
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
-  html = html.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-  
-  html = html.replace(/^\- (.*$)/gim, '<li>$1</li>')
-  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
-  
-  html = html.replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>')
-  
-  html = html.replace(/\n/g, '<br>')
-  
-  return html
+async function checkCommentLikeStatus() {
+  for (const comment of comments.value) {
+    try {
+      const res = await likeApi.check({ targetId: comment.id, targetType: 1 })
+      comment.isLiked = res.data.isLiked
+    } catch {
+      comment.isLiked = false
+    }
+  }
 }
 
 function formatDate(date: string): string {
@@ -335,11 +352,17 @@ async function submitComment() {
   if (!newComment.value.trim() || !article.value) return
   
   try {
-    await blogStore.createComment({
+    const data: { content: string; articleId: number; parentId?: number; replyToId?: number } = {
       content: newComment.value.trim(),
       articleId: article.value.id
-    })
+    }
+    if (replyTarget.value) {
+      data.parentId = replyTarget.value.parentId || replyTarget.value.id
+      data.replyToId = replyTarget.value.id
+    }
+    await blogStore.createComment(data)
     newComment.value = ''
+    replyTarget.value = null
     article.value.commentCount++
     await loadComments(article.value.id)
   } catch (e: any) {
@@ -348,6 +371,8 @@ async function submitComment() {
 }
 
 async function handleCommentLike(comment: CommentInfo) {
+  if ((comment as any)._likeLoading) return
+  ;(comment as any)._likeLoading = true
   try {
     if (comment.isLiked) {
       await blogStore.unlikeComment(comment.id)
@@ -358,10 +383,13 @@ async function handleCommentLike(comment: CommentInfo) {
     }
     comment.isLiked = !comment.isLiked
   } catch {
+  } finally {
+    ;(comment as any)._likeLoading = false
   }
 }
 
 function replyToComment(comment: CommentInfo) {
+  replyTarget.value = comment
   newComment.value = `@${comment.user?.username || '匿名'} `
 }
 
@@ -499,6 +527,94 @@ function navigateToArticle(id: number) {
   box-shadow: var(--shadow-sm);
 }
 
+.markdown-body {
+  line-height: 1.8;
+  color: var(--text-primary);
+}
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3,
+.markdown-body h4, .markdown-body h5, .markdown-body h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.markdown-body h1 { font-size: 1.8rem; }
+.markdown-body h2 { font-size: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.3em; }
+.markdown-body h3 { font-size: 1.25rem; }
+
+.markdown-body p {
+  margin-bottom: 1em;
+}
+
+.markdown-body pre {
+  background: #f6f8fa;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.markdown-body code {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-body :not(pre) > code {
+  background: rgba(255, 107, 157, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--primary-color);
+}
+
+.markdown-body blockquote {
+  border-left: 4px solid var(--primary-color);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin: 1em 0;
+  background: rgba(255, 107, 157, 0.05);
+  border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0;
+}
+
+.markdown-body ul, .markdown-body ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.markdown-body li {
+  margin-bottom: 0.25em;
+}
+
+.markdown-body a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.markdown-body a:hover {
+  text-decoration: underline;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  border-radius: var(--border-radius-sm);
+}
+
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+}
+
+.markdown-body th, .markdown-body td {
+  border: 1px solid var(--border-color);
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+.markdown-body th {
+  background: var(--bg-hover);
+  font-weight: 600;
+}
+
 .article-actions {
   display: flex;
   gap: var(--spacing-md);
@@ -590,6 +706,30 @@ function navigateToArticle(id: number) {
   margin-bottom: var(--spacing-xl);
 }
 
+.reply-indicator {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: rgba(255, 107, 157, 0.1);
+  border-radius: var(--border-radius-sm);
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.9rem;
+  color: var(--primary-color);
+}
+
+.cancel-reply-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.cancel-reply-btn:hover {
+  color: var(--primary-color);
+}
+
 .comment-input {
   width: 100%;
   padding: var(--spacing-md);
@@ -627,6 +767,13 @@ function navigateToArticle(id: number) {
   border-radius: var(--border-radius-sm);
 }
 
+.comment-item.is-reply {
+  margin-left: 40px;
+  padding: var(--spacing-md);
+  background: rgba(255, 107, 157, 0.03);
+  border-left: 3px solid var(--primary-color);
+}
+
 .comment-avatar {
   width: 45px;
   height: 45px;
@@ -654,6 +801,16 @@ function navigateToArticle(id: number) {
 .comment-author {
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.reply-to {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.reply-name {
+  color: var(--primary-color);
+  font-weight: 500;
 }
 
 .comment-time {
@@ -749,6 +906,30 @@ function navigateToArticle(id: number) {
   font-size: 0.9rem;
   text-align: center;
   padding: var(--spacing-md);
+}
+
+.toc-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toc-link {
+  display: block;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toc-link:hover {
+  background: var(--bg-hover);
+  color: var(--primary-color);
 }
 
 .related-articles {

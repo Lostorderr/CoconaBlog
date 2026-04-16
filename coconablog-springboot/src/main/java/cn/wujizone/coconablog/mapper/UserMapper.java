@@ -19,14 +19,20 @@ public interface UserMapper {
     @Select("SELECT * FROM user")
     List<User> findAll();
     
-    @Insert("INSERT INTO user(username, password, email, avatar, role, status, create_time, update_time) " +
-            "VALUES(#{username}, #{password}, #{email}, #{avatar}, #{role}, #{status}, NOW(), NOW())")
+    @Insert("INSERT INTO user(username, password, email, security_question, security_answer, avatar, role, status, create_time, update_time) " +
+            "VALUES(#{username}, #{password}, #{email}, #{securityQuestion}, #{securityAnswer}, #{avatar}, #{role}, #{status}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(User user);
     
     @Update("UPDATE user SET username=#{username}, email=#{email}, avatar=#{avatar}, " +
             "role=#{role}, status=#{status}, update_time=NOW() WHERE id=#{id}")
     int update(User user);
+    
+    @Select("SELECT id, username, security_question, security_answer FROM user WHERE username = #{username}")
+    User findByUsernameForSecurity(@Param("username") String username);
+
+    @Update("UPDATE user SET password = #{password}, update_time = NOW() WHERE username = #{username}")
+    int updatePasswordByUsername(@Param("username") String username, @Param("password") String password);
     
     @Update("UPDATE user SET last_login = NOW() WHERE id = #{id}")
     int updateLastLogin(@Param("id") Long id);

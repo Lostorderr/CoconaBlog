@@ -111,7 +111,7 @@ import { reactive, ref, onMounted } from 'vue'
 import { articleApi } from '@/api/article'
 import { commentApi } from '@/api/comment'
 import { categoryApi } from '@/api/category'
-import { tagApi } from '@/api/tag'
+import { authApi } from '@/api/auth'
 import type { Article, CommentInfo } from '@/store/blog'
 
 const stats = reactive({
@@ -133,11 +133,11 @@ onMounted(async () => {
 
 async function loadStats() {
   try {
-    const [articlesRes, commentsRes, categoriesRes, tagsRes] = await Promise.all([
+    const [articlesRes, commentsRes, categoriesRes, usersRes] = await Promise.all([
       articleApi.getList({ pageSize: 100 }),
-      commentApi.getByArticleId(0, { page: 1, pageSize: 10 }),
+      commentApi.getAll({ page: 1, pageSize: 10 }),
       categoryApi.getList(),
-      tagApi.getAll()
+      authApi.getAllUsers({ page: 1, pageSize: 1 })
     ])
 
     const articles = articlesRes.data.list || []
@@ -146,6 +146,7 @@ async function loadStats() {
     stats.totalLikes = articles.reduce((sum: number, a: Article) => sum + a.likeCount, 0)
     stats.categoryCount = categoriesRes.data.length
     stats.commentCount = commentsRes.data.total || 0
+    stats.userCount = usersRes.data.total || 0
 
     recentArticles.value = articles.slice(0, 5)
     hotArticles.value = [...articles].sort((a, b) => b.viewCount - a.viewCount).slice(0, 10)

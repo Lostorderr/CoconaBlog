@@ -2,10 +2,8 @@ package cn.wujizone.coconablog.controller;
 
 import cn.wujizone.coconablog.common.PageResult;
 import cn.wujizone.coconablog.common.Result;
-import cn.wujizone.coconablog.dto.CommentRequest;
 import cn.wujizone.coconablog.dto.CommentVO;
 import cn.wujizone.coconablog.service.CommentService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -21,27 +19,43 @@ public class CommentController {
     public Result<PageResult<CommentVO>> getCommentsByArticleId(
             @PathVariable Long articleId,
             @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize) {
+        return Result.success(commentService.getCommentsByArticleId(articleId, page, pageSize, null, null));
+    }
+    
+    @GetMapping
+    public Result<PageResult<CommentVO>> getAllComments(
+            @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer pageSize,
-            @RequestParam(required = false) String orderBy,
-            @RequestParam(required = false) String order) {
-        return Result.success(commentService.getCommentsByArticleId(articleId, page, pageSize, orderBy, order));
+            @RequestParam(required = false) Integer status) {
+        return Result.success(commentService.getAllComments(page, pageSize, status));
+    }
+    
+    @GetMapping("/my")
+    public Result<PageResult<CommentVO>> getMyComments(
+            @AuthenticationPrincipal Long userId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer pageSize) {
+        return Result.success(commentService.getMyComments(userId, page, pageSize));
     }
     
     @PostMapping
     public Result<CommentVO> createComment(@AuthenticationPrincipal Long userId,
-                                            @Valid @RequestBody CommentRequest request) {
-        CommentVO vo = new CommentVO();
-        vo.setContent(request.getContent());
-        vo.setArticleId(request.getArticleId());
-        vo.setParentId(request.getParentId());
-        vo.setReplyToId(request.getReplyToId());
-        return Result.success(commentService.createComment(userId, vo));
+                                            @RequestBody CommentVO request) {
+        return Result.success(commentService.createComment(userId, request));
     }
     
     @DeleteMapping("/{id}")
     public Result<Void> deleteComment(@PathVariable Long id,
                                        @AuthenticationPrincipal Long userId) {
         commentService.deleteComment(id, userId);
+        return Result.success();
+    }
+    
+    @PutMapping("/{id}/status")
+    public Result<Void> updateCommentStatus(@PathVariable Long id,
+                                             @RequestBody CommentVO request) {
+        commentService.updateCommentStatus(id, request.getStatus());
         return Result.success();
     }
     

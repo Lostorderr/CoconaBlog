@@ -10,6 +10,8 @@ public class UserVO {
     private String avatar;
     private String email;
     private Integer role;
+    private Integer status;
+    private String securityQuestion;
     private LocalDateTime createTime;
     private LocalDateTime lastLogin;
 }

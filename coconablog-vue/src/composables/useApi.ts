@@ -16,6 +16,8 @@ import type {
   UserInfo,
   LoginRequest,
   RegisterRequest,
+  VerifySecurityRequest,
+  ResetPasswordRequest,
   CreateArticleRequest,
   CreateCommentRequest,
   LikeRequest
@@ -325,7 +327,21 @@ export function useAuth() {
     register,
     logout,
     fetchProfile,
-    initFromStorage
+    initFromStorage,
+
+    async getSecurityQuestion(username: string) {
+      const response = await authApi.getSecurityQuestion(username)
+      return response.data
+    },
+
+    async verifySecurity(data: VerifySecurityRequest) {
+      const response = await authApi.verifySecurity(data)
+      return response.data
+    },
+
+    async resetPassword(data: ResetPasswordRequest) {
+      await authApi.resetPassword(data)
+    }
   }
 }
 
