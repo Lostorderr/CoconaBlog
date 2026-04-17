@@ -105,7 +105,7 @@
                   </div>
                   <div class="comment-body">{{ comment.content }}</div>
                   <div class="comment-actions">
-                    <button class="comment-action-btn" @click="handleCommentLike(comment)" :disabled="comment._likeLoading">
+                    <button class="comment-action-btn" @click="handleCommentLike(comment)" :disabled="(comment as any)._likeLoading">
                       <span>{{ comment.isLiked ? '已赞' : '未赞' }}</span>
                       <span>{{ comment.likeCount }}</span>
                     </button>

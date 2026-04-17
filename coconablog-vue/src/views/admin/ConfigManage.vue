@@ -147,7 +147,7 @@ async function saveAllConfigs() {
     ]
 
     await Promise.all(
-      allConfigs.map(c => configApi.update(c.key, { value: c.value }))
+      allConfigs.map(c => configApi.update(c.key!, { value: c.value! }))
     )
 
     alert('配置保存成功')

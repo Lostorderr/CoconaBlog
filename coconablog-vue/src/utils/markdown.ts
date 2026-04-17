@@ -55,8 +55,9 @@ export function renderMarkdown(content: string): { html: string; toc: TocItem[] 
 
   md.renderer.rules.heading_open = (tokens, idx) => {
     const token = tokens[idx]
+    if (!token?.tag) return ''
     const level = token.tag.match(/h(\d)/)
-    if (!level) return ''
+    if (!level || !level[1]) return ''
     const hLevel = parseInt(level[1])
     const nextToken = tokens[idx + 1]
     const text = nextToken ? nextToken.content : ''
