@@ -6,11 +6,11 @@
           <div class="article-meta">
             <span class="category-tag">{{ article.category?.name || '未分类' }}</span>
             <span class="meta-item">
-              <span class="meta-icon">📅</span>
+              <span>日期:</span>
               {{ formatDate(article.createTime) }}
             </span>
             <span class="meta-item">
-              <span class="meta-icon">👁️</span>
+              <span>浏览:</span>
               {{ article.viewCount }} 次浏览
             </span>
           </div>
@@ -24,7 +24,8 @@
           </div>
 
           <div class="author-info">
-            <div class="author-avatar">👤</div>
+            <img v-if="article.author?.avatar" :src="article.author.avatar" alt="" class="author-avatar" />
+            <div v-else class="author-avatar author-avatar-placeholder">{{ article.author?.username?.charAt(0) || '?' }}</div>
             <div class="author-details">
               <div class="author-name">{{ article.author?.username || '匿名' }}</div>
               <div class="author-bio">博客作者</div>
@@ -32,10 +33,6 @@
           </div>
         </div>
       </header>
-
-      <div class="article-cover container">
-        <img :src="article.coverImage || defaultCover" :alt="article.title" />
-      </div>
 
       <div class="container content-layout">
         <main class="article-content">
@@ -50,11 +47,11 @@
               @click="handleLike"
               :disabled="likeLoading"
             >
-              <span class="action-icon">{{ isLiked ? '💖' : '🤍' }}</span>
+              <span class="action-icon">{{ isLiked ? '已赞' : '未赞' }}</span>
               <span>{{ article.likeCount }}</span>
             </button>
             <button class="action-btn share-btn" @click="handleShare">
-              <span class="action-icon">🔗</span>
+              <span class="action-icon">链接</span>
               <span>分享</span>
             </button>
           </div>
@@ -62,7 +59,7 @@
           <div class="comments-section">
             <div class="comments-header">
               <h3 class="comments-title">
-                <span class="title-icon">💬</span>
+                <span class="title-icon"></span>
                 <span>评论 ({{ article.commentCount }})</span>
               </h3>
             </div>
@@ -74,7 +71,7 @@
             <div v-else class="comment-form">
               <div v-if="replyTarget" class="reply-indicator">
                 <span>回复 {{ replyTarget.user?.username || '匿名' }}</span>
-                <button class="cancel-reply-btn" @click="replyTarget = null; newComment = ''">✕ 取消回复</button>
+                <button class="cancel-reply-btn" @click="replyTarget = null; newComment = ''">取消回复</button>
               </div>
               <textarea
                 v-model="newComment"
@@ -96,7 +93,8 @@
                 class="comment-item"
                 :class="{ 'is-reply': comment.parentId }"
               >
-                <div class="comment-avatar">👤</div>
+                <img v-if="comment.user?.avatar" :src="comment.user.avatar" alt="" class="comment-avatar" />
+                <div v-else class="comment-avatar comment-avatar-placeholder">{{ comment.user?.username?.charAt(0) || '?' }}</div>
                 <div class="comment-content">
                   <div class="comment-header">
                     <span class="comment-author">{{ comment.user?.username || '匿名' }}</span>
@@ -108,11 +106,11 @@
                   <div class="comment-body">{{ comment.content }}</div>
                   <div class="comment-actions">
                     <button class="comment-action-btn" @click="handleCommentLike(comment)" :disabled="comment._likeLoading">
-                      <span>{{ comment.isLiked ? '💖' : '🤍' }}</span>
+                      <span>{{ comment.isLiked ? '已赞' : '未赞' }}</span>
                       <span>{{ comment.likeCount }}</span>
                     </button>
                     <button class="comment-action-btn" @click="replyToComment(comment)">
-                      <span>💬</span>
+                      <span>回复</span>
                       <span>回复</span>
                     </button>
                   </div>
@@ -120,7 +118,7 @@
               </div>
 
               <div v-if="comments.length === 0" class="no-comments">
-                <span class="no-comments-icon">💭</span>
+                <span class="no-comments-icon"></span>
                 <p>暂无评论，快来发表第一条评论吧！</p>
               </div>
             </div>
@@ -137,7 +135,7 @@
         <aside class="article-sidebar">
           <div class="sidebar-section card">
             <h3 class="section-title">
-              <span class="title-icon">📋</span>
+              <span class="title-icon"></span>
               <span>目录</span>
             </h3>
             <div class="toc">
@@ -158,7 +156,7 @@
 
           <div class="sidebar-section card">
             <h3 class="section-title">
-              <span class="title-icon">📝</span>
+              <span class="title-icon"></span>
               <span>相关文章</span>
             </h3>
             <div class="related-articles">
@@ -185,7 +183,7 @@
     <div v-else-if="loading" class="loading-state">
       <div class="container">
         <div class="loading-content">
-          <div class="loading-spinner">🌸</div>
+          <div class="loading-spinner"></div>
           <p class="loading-text">加载中...</p>
         </div>
       </div>
@@ -194,7 +192,7 @@
     <div v-else class="not-found">
       <div class="container">
         <div class="not-found-content">
-          <div class="not-found-icon">🔍</div>
+          <div class="not-found-icon"></div>
           <h2 class="not-found-title">文章未找到</h2>
           <p class="not-found-desc">抱歉，这篇文章可能已经被删除或不存在</p>
           <router-link to="/articles" class="btn btn-primary">
@@ -229,7 +227,7 @@ const comments = ref<CommentInfo[]>([])
 const newComment = ref('')
 const replyTarget = ref<CommentInfo | null>(null)
 const tocItems = ref<TocItem[]>([])
-const defaultCover = 'https://picsum.photos/seed/default/800/400'
+const defaultCover = ''
 
 const renderedContent = computed(() => {
   if (!article.value) return ''
@@ -475,8 +473,13 @@ function navigateToArticle(id: number) {
 .author-avatar {
   width: 50px;
   height: 50px;
-  background: rgba(255, 255, 255, 0.2);
   border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.author-avatar-placeholder {
+  background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -491,20 +494,6 @@ function navigateToArticle(id: number) {
 .author-bio {
   font-size: 0.9rem;
   opacity: 0.8;
-}
-
-.article-cover {
-  margin-top: calc(-1 * var(--spacing-xl));
-  position: relative;
-  z-index: 1;
-}
-
-.article-cover img {
-  width: 100%;
-  height: 400px;
-  object-fit: cover;
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-lg);
 }
 
 .content-layout {
@@ -777,13 +766,18 @@ function navigateToArticle(id: number) {
 .comment-avatar {
   width: 45px;
   height: 45px;
-  background: var(--gradient-primary);
   border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.comment-avatar-placeholder {
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
-  flex-shrink: 0;
+  color: white;
 }
 
 .comment-content {

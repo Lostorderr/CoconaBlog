@@ -49,6 +49,10 @@ export const useBlogStore = defineStore('blog', () => {
       pagination.value = response.data
       articles.value = response.data.list
       return response.data
+    } catch (error) {
+      console.error('获取文章列表失败:', error)
+      articles.value = []
+      throw error
     } finally {
       loading.value = false
     }
@@ -82,6 +86,7 @@ export const useBlogStore = defineStore('blog', () => {
       categories.value = response.data
       return response.data
     } catch {
+      categories.value = []
       return []
     }
   }
@@ -92,6 +97,7 @@ export const useBlogStore = defineStore('blog', () => {
       tags.value = response.data
       return response.data
     } catch {
+      tags.value = []
       return []
     }
   }

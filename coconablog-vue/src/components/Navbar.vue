@@ -3,11 +3,13 @@
     <div class="container navbar-container">
       <div class="navbar-left">
         <button class="menu-toggle" @click="toggleMenu">
-          <span v-if="!isMenuOpen">☰</span>
-          <span v-else>✕</span>
+          <span class="hamburger" :class="{ active: isMenuOpen }">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
         </button>
         <router-link to="/" class="navbar-brand">
-          <span class="logo-icon">🌸</span>
           <span class="logo-text">Cocona Blog</span>
         </router-link>
       </div>
@@ -31,38 +33,35 @@
 
         <div v-if="!isLoggedIn" class="auth-links">
           <router-link to="/login" class="auth-link">
-            <span>👤</span>
-            <span>登录</span>
+            <span>👤 登录</span>
           </router-link>
           <router-link to="/register" class="auth-link register">
-            <span>✨</span>
-            <span>注册</span>
+            <span>📝 注册</span>
           </router-link>
         </div>
 
         <div v-else class="user-menu">
           <div class="user-info" @click="toggleUserMenu">
-            <span class="user-avatar">👤</span>
+            <span class="user-avatar">
+              <img v-if="user?.avatar" :src="user.avatar" alt="头像" />
+              <span v-else>{{ user?.username?.charAt(0) }}</span>
+            </span>
             <span class="user-name">{{ user?.username }}</span>
             <span class="user-dropdown">▼</span>
           </div>
           <div class="user-dropdown-menu" :class="{ active: isUserMenuOpen }">
             <router-link to="/profile" class="dropdown-item" @click="closeUserMenu">
-              <span>👤</span>
-              <span>个人中心</span>
+              <span>👤 个人中心</span>
             </router-link>
             <router-link to="/create-article" class="dropdown-item" @click="closeUserMenu">
-              <span>📝</span>
-              <span>发布文章</span>
+              <span>✏️ 发布文章</span>
             </router-link>
             <router-link v-if="isAdmin" to="/admin" class="dropdown-item admin" @click="closeUserMenu">
-              <span>⚙️</span>
-              <span>管理后台</span>
+              <span>⚙️ 管理后台</span>
             </router-link>
             <div class="dropdown-divider"></div>
             <button class="dropdown-item" @click="handleLogout">
-              <span>🚪</span>
-              <span>退出登录</span>
+              <span>🚪 退出登录</span>
             </button>
           </div>
         </div>
@@ -130,7 +129,7 @@
             @keyup.enter="handleSearch"
           />
           <button class="search-submit" @click="handleSearch">
-            <span>🔍</span>
+            <span>搜索</span>
           </button>
         </div>
       </div>
@@ -158,9 +157,9 @@ const isUserMenuOpen = ref(false)
 const isAdmin = computed(() => user.value?.role === 1)
 
 const menuItems = [
-  { name: '首页', path: '/', icon: '🏠' },
-  { name: '文章', path: '/articles', icon: '📝' },
-  { name: '关于', path: '/about', icon: '💖' }
+  { name: '首页', path: '/', icon: '' },
+  { name: '文章', path: '/articles', icon: '' },
+  { name: '关于', path: '/about', icon: '' }
 ]
 
 onMounted(async () => {
@@ -256,7 +255,6 @@ async function handleLogout() {
   background: var(--bg-card);
   border: 2px solid var(--border-color);
   border-radius: var(--border-radius-sm);
-  font-size: 1.2rem;
   cursor: pointer;
   transition: all var(--transition-normal);
 }
@@ -265,6 +263,38 @@ async function handleLogout() {
   background: var(--bg-hover);
   border-color: var(--primary-color);
   transform: scale(1.1);
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 18px;
+  gap: 4px;
+}
+
+.hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: all var(--transition-normal);
+}
+
+.hamburger.active span:nth-child(1) {
+  transform: rotate(45deg) translate(4px, 4px);
+}
+
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.hamburger.active span:nth-child(3) {
+  transform: rotate(-45deg) translate(4px, -4px);
 }
 
 .navbar-brand {
@@ -280,11 +310,6 @@ async function handleLogout() {
 
 .navbar-brand:hover {
   transform: scale(1.05);
-}
-
-.logo-icon {
-  font-size: 2rem;
-  animation: float 3s ease-in-out infinite;
 }
 
 .logo-text {
@@ -421,6 +446,13 @@ async function handleLogout() {
   align-items: center;
   justify-content: center;
   font-size: 0.8rem;
+  overflow: hidden;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-name {

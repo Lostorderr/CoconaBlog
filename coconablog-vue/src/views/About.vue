@@ -3,8 +3,7 @@
     <div class="page-header">
       <div class="container">
         <h1 class="page-title">
-          <span class="title-icon">💖</span>
-          <span>关于我</span>
+          <span>👋 关于我</span>
         </h1>
         <p class="page-description">
           了解更多关于这个博客和博主的故事
@@ -17,8 +16,7 @@
         <section class="about-section card">
           <div class="section-header">
             <h2 class="section-title">
-              <span class="title-icon">🌸</span>
-              <span>关于博客</span>
+              <span>🌐 关于博客</span>
             </h2>
           </div>
           <div class="section-content">
@@ -36,18 +34,16 @@
         <section class="about-section card">
           <div class="section-header">
             <h2 class="section-title">
-              <span class="title-icon">👤</span>
-              <span>关于博主</span>
+              <span>👩‍💻 关于博主</span>
             </h2>
           </div>
           <div class="author-profile">
-            <div class="profile-avatar">🌸</div>
+            <img src="/images/profilePicture/仙狐头像.png" alt="wuji" class="profile-avatar" />
             <div class="profile-info">
-              <h3 class="profile-name">Cocona</h3>
+              <h3 class="profile-name">wuji</h3>
               <p class="profile-bio">
                 一个热爱编程的开发者，喜欢探索新技术，
-                分享学习心得，记录生活点滴。相信代码可以改变世界，
-                动漫可以温暖人心 ✨
+                分享学习心得，记录生活点滴
               </p>
             </div>
           </div>
@@ -56,8 +52,7 @@
         <section class="about-section card">
           <div class="section-header">
             <h2 class="section-title">
-              <span class="title-icon">🎯</span>
-              <span>博客特色</span>
+              <span>✨ 博客特色</span>
             </h2>
           </div>
           <div class="features-list">
@@ -71,7 +66,7 @@
               </div>
             </div>
             <div class="feature-item">
-              <div class="feature-icon">💻</div>
+              <div class="feature-icon">💡</div>
               <div class="feature-content">
                 <h4 class="feature-title">技术文章分享</h4>
                 <p class="feature-desc">
@@ -89,7 +84,7 @@
               </div>
             </div>
             <div class="feature-item">
-              <div class="feature-icon">🌙</div>
+              <div class="feature-icon">🚀</div>
               <div class="feature-content">
                 <h4 class="feature-title">持续更新</h4>
                 <p class="feature-desc">
@@ -103,8 +98,7 @@
         <section class="about-section card">
           <div class="section-header">
             <h2 class="section-title">
-              <span class="title-icon">🛠️</span>
-              <span>技术栈</span>
+              <span>🛠️ 技术栈</span>
             </h2>
           </div>
           <div class="tech-stack">
@@ -140,22 +134,21 @@
         <section class="about-section card">
           <div class="section-header">
             <h2 class="section-title">
-              <span class="title-icon">📬</span>
-              <span>联系方式</span>
+              <span>📬 联系方式</span>
             </h2>
           </div>
           <div class="contact-links">
-            <a href="mailto:842622982@qq.com" class="contact-item">
-              <span class="contact-icon">📧</span>
-              <span class="contact-text">842622982@qq.com</span>
-            </a>
             <a href="https://github.com/Lostorderr" target="_blank" class="contact-item">
-              <span class="contact-icon">💻</span>
+              <span class="contact-icon">🐙</span>
               <span class="contact-text">GitHub</span>
             </a>
             <a href="https://space.bilibili.com/113969638" target="_blank" class="contact-item">
               <span class="contact-icon">📺</span>
               <span class="contact-text">Bilibili</span>
+            </a>
+            <a href="mailto:842622982@qq.com" class="contact-item">
+              <span class="contact-icon">📧</span>
+              <span class="contact-text">Email: 842622982@qq.com</span>
             </a>
           </div>
         </section>
@@ -253,12 +246,8 @@
 .profile-avatar {
   width: 100px;
   height: 100px;
-  background: var(--gradient-primary);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
+  object-fit: cover;
   flex-shrink: 0;
   box-shadow: var(--shadow-md);
   animation: float 3s ease-in-out infinite;
@@ -387,7 +376,7 @@
 }
 
 .contact-icon {
-  font-size: 1.5rem;
+  font-size: 2rem;
 }
 
 .contact-text {

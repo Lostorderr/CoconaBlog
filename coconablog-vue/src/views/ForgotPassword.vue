@@ -3,7 +3,7 @@
     <div class="forgot-container">
       <div class="forgot-card">
         <div class="forgot-header">
-          <div class="logo">🔑</div>
+          <div class="logo">?</div>
           <h1 class="title">找回密码</h1>
           <p class="subtitle">{{ step === 1 ? '验证你的身份' : '设置新密码' }}</p>
         </div>

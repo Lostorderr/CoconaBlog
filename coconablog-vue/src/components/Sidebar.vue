@@ -2,7 +2,6 @@
   <aside class="sidebar">
     <div class="sidebar-section card">
       <h3 class="section-title">
-        <span class="title-icon">📊</span>
         <span>博客统计</span>
       </h3>
       <div class="stats-grid">
@@ -27,7 +26,6 @@
 
     <div class="sidebar-section card">
       <h3 class="section-title">
-        <span class="title-icon">📁</span>
         <span>文章分类</span>
       </h3>
       <div class="category-list">
@@ -47,7 +45,6 @@
 
     <div class="sidebar-section card">
       <h3 class="section-title">
-        <span class="title-icon">🏷️</span>
         <span>热门标签</span>
       </h3>
       <div class="tag-cloud">
@@ -64,24 +61,24 @@
 
     <div class="sidebar-section card">
       <h3 class="section-title">
-        <span class="title-icon">💫</span>
-        <span>关于博主</span>
+        <span>👩‍💻 关于博主</span>
       </h3>
       <div class="author-card">
-        <div class="author-avatar">🌸</div>
-        <div class="author-name">Cocona</div>
+        <img src="/images/profilePicture/仙狐头像.png" alt="wuji" class="author-avatar" />
+        <div class="author-name">wuji</div>
         <div class="author-bio">
-          一个热爱生活和编程的博主，喜欢分享技术心得和生活感悟 ✨
+          一个热爱编程的开发者，喜欢探索新技术，
+          分享学习心得，记录生活点滴
         </div>
         <div class="social-links">
-          <a href="#" class="social-link" title="GitHub">
-            <span>💻</span>
+          <a href="https://github.com/Lostorderr" target="_blank" class="social-link" title="GitHub">
+            <span>🐙 GitHub</span>
           </a>
-          <a href="#" class="social-link" title="Twitter">
-            <span>🐦</span>
+          <a href="https://space.bilibili.com/113969638" target="_blank" class="social-link" title="Bilibili">
+            <span>📺 Bilibili</span>
           </a>
-          <a href="#" class="social-link" title="Email">
-            <span>📧</span>
+          <a href="mailto:842622982@qq.com" class="social-link" title="Email">
+            <span>📧 Email</span>
           </a>
         </div>
       </div>
@@ -246,12 +243,8 @@ function filterByTag(tagId: number) {
   width: 80px;
   height: 80px;
   margin: 0 auto var(--spacing-md);
-  background: var(--gradient-primary);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.5rem;
+  object-fit: cover;
   box-shadow: var(--shadow-md);
   animation: float 3s ease-in-out infinite;
 }
@@ -273,25 +266,28 @@ function filterByTag(tagId: number) {
 .social-links {
   display: flex;
   justify-content: center;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
 }
 
 .social-link {
-  width: 40px;
-  height: 40px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
   background: var(--bg-hover);
-  border-radius: 50%;
-  font-size: 1.2rem;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-decoration: none;
   transition: all var(--transition-normal);
 }
 
 .social-link:hover {
   background: var(--gradient-primary);
-  transform: translateY(-4px) scale(1.1);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  color: white;
 }
 
 @media (max-width: 1024px) {

@@ -37,7 +37,7 @@ public class ArticleService {
         Long total = articleMapper.countByCondition(categoryId, tagId, keyword, status, null);
         
         List<ArticleVO> voList = articles.stream()
-                .map(this::toArticleVO)
+                .map(this::toArticleVODetail)
                 .collect(Collectors.toList());
         
         return new PageResult<>(voList, total, page, pageSize);

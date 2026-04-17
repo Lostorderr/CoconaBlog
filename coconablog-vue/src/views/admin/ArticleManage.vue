@@ -3,7 +3,7 @@
     <div class="management-header">
       <h2>文章管理</h2>
       <router-link to="/create-article" class="btn btn-primary">
-        <span>➕</span> 发布文章
+        <span>+</span> 发布文章
       </router-link>
     </div>
 

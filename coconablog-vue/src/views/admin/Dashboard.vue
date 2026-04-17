@@ -2,42 +2,42 @@
   <div class="dashboard">
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-icon">📝</div>
+        <div class="stat-icon">文章</div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.articleCount }}</div>
           <div class="stat-label">文章总数</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">👁️</div>
+        <div class="stat-icon">浏览</div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.totalViews }}</div>
           <div class="stat-label">总浏览量</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">💖</div>
+        <div class="stat-icon">点赞</div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.totalLikes }}</div>
           <div class="stat-label">总点赞数</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">💬</div>
+        <div class="stat-icon">评论</div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.commentCount }}</div>
           <div class="stat-label">评论总数</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">👥</div>
+        <div class="stat-icon">用户</div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.userCount }}</div>
           <div class="stat-label">用户总数</div>
         </div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon">📁</div>
+        <div class="stat-icon">分类</div>
         <div class="stat-info">
           <div class="stat-value">{{ stats.categoryCount }}</div>
           <div class="stat-label">分类数量</div>
@@ -48,7 +48,7 @@
     <div class="dashboard-grid">
       <div class="dashboard-card">
         <h3 class="card-title">
-          <span>📝</span>
+          <span></span>
           <span>最新文章</span>
         </h3>
         <div class="card-content">
@@ -60,8 +60,8 @@
                 <span class="article-date">{{ formatDate(article.createTime) }}</span>
               </div>
               <div class="article-stats">
-                <span>👁️ {{ article.viewCount }}</span>
-                <span>💖 {{ article.likeCount }}</span>
+                <span>{{ article.viewCount }}</span>
+                <span>{{ article.likeCount }}</span>
               </div>
             </div>
           </div>
@@ -70,7 +70,7 @@
 
       <div class="dashboard-card">
         <h3 class="card-title">
-          <span>💬</span>
+          <span></span>
           <span>最新评论</span>
         </h3>
         <div class="card-content">
@@ -88,7 +88,7 @@
 
     <div class="dashboard-card full-width">
       <h3 class="card-title">
-        <span>📊</span>
+        <span></span>
         <span>热门文章</span>
       </h3>
       <div class="card-content">
@@ -97,8 +97,8 @@
           <div v-for="(article, index) in hotArticles" :key="article.id" class="hot-item">
             <span class="rank" :class="{ top: index < 3 }">{{ index + 1 }}</span>
             <span class="title">{{ article.title }}</span>
-            <span class="views">👁️ {{ article.viewCount }}</span>
-            <span class="likes">💖 {{ article.likeCount }}</span>
+            <span class="views">{{ article.viewCount }}</span>
+            <span class="likes">{{ article.likeCount }}</span>
           </div>
         </div>
       </div>

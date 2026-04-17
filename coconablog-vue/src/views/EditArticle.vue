@@ -2,12 +2,12 @@
   <div class="edit-article-page">
     <div class="container">
       <div class="page-header">
-        <h1 class="page-title">✏️ 编辑文章</h1>
+        <h1 class="page-title">编辑文章</h1>
         <p class="page-subtitle">修改你的文章内容</p>
       </div>
 
       <div v-if="loading" class="loading-state">
-        <span class="loading-spinner">🌸</span>
+        <span class="loading-spinner"></span>
         <p>加载中...</p>
       </div>
 
@@ -83,7 +83,7 @@
                 "
               </button>
               <button type="button" class="toolbar-btn" @click="insertMarkdown('[', '](url)')" title="链接">
-                🔗
+                链接
               </button>
             </div>
             <textarea
@@ -101,19 +101,6 @@
           <div class="sidebar-card">
             <h3 class="sidebar-title">发布设置</h3>
             
-            <div class="form-group">
-              <label class="form-label">封面图片</label>
-              <input
-                v-model="form.coverImage"
-                type="url"
-                class="form-input"
-                placeholder="图片URL地址"
-              />
-              <div v-if="form.coverImage" class="cover-preview">
-                <img :src="form.coverImage" alt="封面预览" />
-              </div>
-            </div>
-
             <div class="form-group">
               <label class="form-label">标签</label>
               <div class="tags-input">
@@ -138,15 +125,13 @@
                 <label class="status-option">
                   <input type="radio" v-model="form.status" :value="0" />
                   <span class="status-label">
-                    <span class="status-icon">📝</span>
-                    <span>草稿</span>
+                    <span class="status-icon">草稿</span>
                   </span>
                 </label>
                 <label class="status-option">
                   <input type="radio" v-model="form.status" :value="1" />
                   <span class="status-label">
-                    <span class="status-icon">✅</span>
-                    <span>发布</span>
+                    <span class="status-icon">发布</span>
                   </span>
                 </label>
               </div>
@@ -195,7 +180,6 @@ const form = reactive({
   slug: '',
   summary: '',
   content: '',
-  coverImage: '',
   categoryId: null as number | null,
   tagIds: [] as number[],
   status: 1,
@@ -235,7 +219,6 @@ async function loadArticle() {
     form.slug = article.slug
     form.summary = article.summary || ''
     form.content = article.content
-    form.coverImage = article.coverImage || ''
     form.categoryId = article.categoryId
     form.tagIds = article.tags?.map(t => t.id) || []
     form.status = article.status
@@ -296,7 +279,6 @@ async function handleSubmit() {
       slug: form.slug.trim() || undefined,
       summary: form.summary.trim() || undefined,
       content: form.content.trim(),
-      coverImage: form.coverImage.trim() || undefined,
       categoryId: form.categoryId || undefined,
       tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
       status: form.status,
@@ -466,18 +448,6 @@ function goBack() {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.95rem;
   line-height: 1.6;
-}
-
-.cover-preview {
-  margin-top: var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
-  overflow: hidden;
-}
-
-.cover-preview img {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
 }
 
 .tags-input {

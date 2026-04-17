@@ -1,43 +1,37 @@
 <template>
   <div class="article-card card" @click="navigateToArticle">
-    <div class="card-cover">
-      <img :src="article.coverImage || defaultCover" :alt="article.title" />
-      <div class="cover-overlay">
-        <span class="category-tag">{{ article.category?.name || '未分类' }}</span>
-      </div>
-    </div>
-    
-    <div class="card-content">
-      <h3 class="card-title">{{ article.title }}</h3>
-      <p class="card-summary">{{ article.summary || '暂无摘要' }}</p>
-      
-      <div class="card-tags">
-        <span v-for="tag in (article.tags || []).slice(0, 3)" :key="tag.id" class="tag">
-          #{{ tag.name }}
-        </span>
-      </div>
-      
-      <div class="card-footer">
-        <div class="author-info">
-          <div class="author-avatar">👤</div>
-          <span class="author-name">{{ article.author?.username || '匿名' }}</span>
+    <div class="card-main">
+      <div class="card-body">
+        <div class="card-header">
+          <h3 class="card-title">{{ article.title }}</h3>
+          <span class="category-tag">{{ article.category?.name || '未分类' }}</span>
         </div>
-        
+        <p class="card-summary">{{ article.summary || '暂无摘要' }}</p>
+        <div class="card-tags">
+          <span v-for="tag in (article.tags || []).slice(0, 4)" :key="tag.id" class="tag">
+            #{{ tag.name }}
+          </span>
+        </div>
+      </div>
+
+      <div class="card-meta">
+        <div class="author-info">
+          <img v-if="article.author?.avatar" :src="article.author.avatar" alt="" class="author-avatar" />
+          <div v-else class="author-avatar author-avatar-placeholder">{{ article.author?.username?.charAt(0) || '?' }}</div>
+          <div class="author-detail">
+            <span class="author-name">{{ article.author?.username || '匿名' }}</span>
+            <span class="card-date">{{ formatDate(article.createTime) }}</span>
+          </div>
+        </div>
+
         <div class="article-stats">
           <span class="stat-item">
-            <span class="stat-icon">👁️</span>
-            <span>{{ formatNumber(article.viewCount) }}</span>
+            <span>{{ article.viewCount }}</span> 浏览
           </span>
           <span class="stat-item">
-            <span class="stat-icon">💖</span>
-            <span>{{ formatNumber(article.likeCount) }}</span>
+            <span>{{ article.likeCount }}</span> 赞
           </span>
         </div>
-      </div>
-      
-      <div class="card-date">
-        <span class="date-icon">📅</span>
-        <span>{{ formatDate(article.createTime) }}</span>
       </div>
     </div>
   </div>
@@ -52,24 +46,15 @@ const props = defineProps<{
 }>()
 
 const router = useRouter()
-const defaultCover = 'https://picsum.photos/seed/default/800/400'
 
 function navigateToArticle() {
   router.push(`/article/${props.article.id}`)
 }
 
-function formatNumber(num: number): string {
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'k'
-  }
-  return num.toString()
-}
-
 function formatDate(date: string): string {
   const d = new Date(date)
   return d.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: 'long',
+    month: 'short',
     day: 'numeric'
   })
 }
@@ -84,68 +69,38 @@ function formatDate(date: string): string {
   flex-direction: column;
 }
 
-.card-cover {
-  position: relative;
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-}
-
-.card-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--transition-slow);
-}
-
-.article-card:hover .card-cover img {
-  transform: scale(1.1);
-}
-
-.cover-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    to bottom,
-    transparent 0%,
-    rgba(45, 27, 48, 0.3) 100%
-  );
+.card-main {
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  padding: var(--spacing-md);
-}
-
-.category-tag {
-  background: var(--gradient-primary);
-  color: white;
-  padding: var(--spacing-xs) var(--spacing-md);
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  box-shadow: var(--shadow-sm);
-}
-
-.card-content {
+  flex-direction: column;
+  gap: var(--spacing-md);
   padding: var(--spacing-lg);
+}
+
+.card-body {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
 }
 
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
 .card-title {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.4;
+  line-height: 1.5;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex: 1;
+  min-width: 0;
   transition: color var(--transition-fast);
 }
 
@@ -153,9 +108,20 @@ function formatDate(date: string): string {
   color: var(--primary-color);
 }
 
+.category-tag {
+  background: var(--gradient-primary);
+  color: white;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .card-summary {
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -167,83 +133,99 @@ function formatDate(date: string): string {
 .card-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-xs);
-  margin-top: var(--spacing-xs);
+  gap: 6px;
 }
 
-.card-footer {
+.card-tags .tag {
+  color: var(--primary-color);
+  background: rgba(255, 107, 157, 0.08);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.card-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: var(--spacing-md);
-  padding-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
   border-top: 1px solid var(--border-color);
+  gap: var(--spacing-md);
 }
 
 .author-info {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  min-width: 0;
 }
 
 .author-avatar {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.author-avatar-placeholder {
   background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.85rem;
+  color: white;
+}
+
+.author-detail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .author-name {
   font-weight: 500;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-date {
+  color: var(--text-muted);
+  font-size: 0.78rem;
 }
 
 .article-stats {
   display: flex;
   gap: var(--spacing-md);
+  flex-shrink: 0;
 }
 
 .stat-item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: 3px;
   color: var(--text-muted);
-  font-size: 0.85rem;
-}
-
-.stat-icon {
-  font-size: 1rem;
-}
-
-.card-date {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  margin-top: var(--spacing-sm);
-}
-
-.date-icon {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
 }
 
 @media (max-width: 768px) {
-  .card-cover {
-    height: 180px;
+  .card-header {
+    flex-direction: column;
+    gap: 6px;
   }
 
-  .card-title {
-    font-size: 1.1rem;
+  .category-tag {
+    align-self: flex-start;
   }
 
-  .card-summary {
-    font-size: 0.9rem;
+  .card-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
   }
 }
 </style>

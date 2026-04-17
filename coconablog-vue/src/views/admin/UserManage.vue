@@ -8,12 +8,12 @@
     </div>
 
     <div v-if="loading" class="loading-state">
-      <span class="loading-spinner">🌸</span>
+      <span class="loading-spinner"></span>
       <p>加载中...</p>
     </div>
 
     <div v-else-if="users.length === 0" class="empty-state">
-      <span class="empty-icon">👥</span>
+      <span class="empty-icon"></span>
       <p>暂无用户数据</p>
     </div>
 

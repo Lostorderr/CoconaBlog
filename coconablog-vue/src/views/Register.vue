@@ -3,7 +3,7 @@
     <div class="register-container">
       <div class="register-card">
         <div class="register-header">
-          <div class="logo">✨</div>
+          <div class="logo">CB</div>
           <h1 class="title">创建账户</h1>
           <p class="subtitle">开启你的博客之旅</p>
         </div>

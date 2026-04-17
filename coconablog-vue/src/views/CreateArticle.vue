@@ -2,7 +2,7 @@
   <div class="create-article-page">
     <div class="container">
       <div class="page-header">
-        <h1 class="page-title">📝 发布新文章</h1>
+        <h1 class="page-title">发布新文章</h1>
         <p class="page-subtitle">分享你的想法和知识</p>
       </div>
 
@@ -78,7 +78,7 @@
                 "
               </button>
               <button type="button" class="toolbar-btn" @click="insertMarkdown('[', '](url)')" title="链接">
-                🔗
+                链接
               </button>
             </div>
             <textarea
@@ -96,19 +96,6 @@
           <div class="sidebar-card">
             <h3 class="sidebar-title">发布设置</h3>
             
-            <div class="form-group">
-              <label class="form-label">封面图片</label>
-              <input
-                v-model="form.coverImage"
-                type="url"
-                class="form-input"
-                placeholder="图片URL地址"
-              />
-              <div v-if="form.coverImage" class="cover-preview">
-                <img :src="form.coverImage" alt="封面预览" />
-              </div>
-            </div>
-
             <div class="form-group">
               <label class="form-label">标签</label>
               <div class="tags-input">
@@ -133,15 +120,13 @@
                 <label class="status-option">
                   <input type="radio" v-model="form.status" :value="0" />
                   <span class="status-label">
-                    <span class="status-icon">📝</span>
-                    <span>草稿</span>
+                    <span class="status-icon">草稿</span>
                   </span>
                 </label>
                 <label class="status-option">
                   <input type="radio" v-model="form.status" :value="1" />
                   <span class="status-label">
-                    <span class="status-icon">✅</span>
-                    <span>发布</span>
+                    <span class="status-icon">发布</span>
                   </span>
                 </label>
               </div>
@@ -165,7 +150,7 @@
           </div>
 
           <div class="sidebar-card tips-card">
-            <h3 class="sidebar-title">💡 写作提示</h3>
+            <h3 class="sidebar-title">写作提示</h3>
             <ul class="tips-list">
               <li>使用 Markdown 格式编写文章</li>
               <li>标题使用 # 符号标记</li>
@@ -199,27 +184,32 @@ const form = reactive({
   slug: '',
   summary: '',
   content: '',
-  coverImage: '',
   categoryId: null as number | null,
   tagIds: [] as number[],
   status: 1,
   isTop: false
 })
 
-const categories = computed(() => blogStore.categories)
-const tags = computed(() => blogStore.tags)
+const categories = computed(() => Array.isArray(blogStore.categories) ? blogStore.categories : [])
+const tags = computed(() => Array.isArray(blogStore.tags) ? blogStore.tags : [])
 
 const availableTags = computed(() => 
   tags.value.filter(t => !form.tagIds.includes(t.id))
 )
 
 onMounted(async () => {
-  if (!isLoggedIn.value) {
-    router.push('/login')
-    return
+  try {
+    if (!isLoggedIn.value) {
+      router.push('/login')
+      return
+    }
+    await Promise.allSettled([
+      blogStore.fetchCategories(),
+      blogStore.fetchTags()
+    ])
+  } catch (e) {
+    console.error('CreateArticle 初始化失败:', e)
   }
-  await blogStore.fetchCategories()
-  await blogStore.fetchTags()
 })
 
 function getTagName(id: number): string {
@@ -264,14 +254,28 @@ async function handleSubmit() {
   
   submitting.value = true
   try {
-    const slug = form.slug.trim() || form.title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')
+    const rawSlug = form.slug.trim()
+    let slug: string
+    if (rawSlug) {
+      slug = rawSlug
+    } else {
+      // 从标题生成 slug：保留中文、字母、数字、连字符
+      slug = form.title.trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\u4e00-\u9fff-]/g, '')
+        .replace(/^-+|-+$/g, '')
+      // 如果生成的 slug 为空（纯符号标题），回退到时间戳
+      if (!slug) {
+        slug = 'post-' + Date.now()
+      }
+    }
     
     await articleApi.create({
       title: form.title.trim(),
       slug,
       summary: form.summary.trim() || undefined,
       content: form.content.trim(),
-      coverImage: form.coverImage.trim() || undefined,
       categoryId: form.categoryId || undefined,
       tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
       status: form.status,
@@ -427,18 +431,6 @@ async function saveDraft() {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.95rem;
   line-height: 1.6;
-}
-
-.cover-preview {
-  margin-top: var(--spacing-sm);
-  border-radius: var(--border-radius-sm);
-  overflow: hidden;
-}
-
-.cover-preview img {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
 }
 
 .tags-input {

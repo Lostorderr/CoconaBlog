@@ -2,44 +2,44 @@
   <div class="admin-page">
     <div class="admin-sidebar">
       <div class="sidebar-header">
-        <span class="logo">🌸</span>
+        <span class="logo">CB</span>
         <span class="title">管理后台</span>
       </div>
       
       <nav class="sidebar-nav">
         <router-link to="/admin" class="nav-item" exact-active-class="active">
-          <span class="nav-icon">📊</span>
+          <span class="nav-icon"></span>
           <span>数据概览</span>
         </router-link>
         <router-link to="/admin/articles" class="nav-item" active-class="active">
-          <span class="nav-icon">📝</span>
+          <span class="nav-icon"></span>
           <span>文章管理</span>
         </router-link>
         <router-link to="/admin/categories" class="nav-item" active-class="active">
-          <span class="nav-icon">📁</span>
+          <span class="nav-icon"></span>
           <span>分类管理</span>
         </router-link>
         <router-link to="/admin/tags" class="nav-item" active-class="active">
-          <span class="nav-icon">🏷️</span>
+          <span class="nav-icon"></span>
           <span>标签管理</span>
         </router-link>
         <router-link to="/admin/comments" class="nav-item" active-class="active">
-          <span class="nav-icon">💬</span>
+          <span class="nav-icon"></span>
           <span>评论管理</span>
         </router-link>
         <router-link to="/admin/users" class="nav-item" active-class="active">
-          <span class="nav-icon">👥</span>
+          <span class="nav-icon"></span>
           <span>用户管理</span>
         </router-link>
         <router-link to="/admin/config" class="nav-item" active-class="active">
-          <span class="nav-icon">⚙️</span>
+          <span class="nav-icon"></span>
           <span>系统配置</span>
         </router-link>
       </nav>
 
       <div class="sidebar-footer">
         <router-link to="/" class="back-link">
-          <span>🏠</span>
+          <span></span>
           <span>返回前台</span>
         </router-link>
       </div>
@@ -50,7 +50,7 @@
         <h1 class="page-title">{{ pageTitle }}</h1>
         <div class="header-actions">
           <span class="user-info">
-            <span class="user-avatar">👤</span>
+            <span class="user-avatar">{{ user?.username?.charAt(0) }}</span>
             <span>{{ user?.username }}</span>
           </span>
         </div>

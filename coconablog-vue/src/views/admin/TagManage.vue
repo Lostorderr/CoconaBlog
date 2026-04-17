@@ -3,7 +3,7 @@
     <div class="management-header">
       <h2>标签管理</h2>
       <button class="btn btn-primary" @click="showCreateModal = true">
-        <span>➕</span> 新建标签
+        <span>+</span> 新建标签
       </button>
     </div>
 

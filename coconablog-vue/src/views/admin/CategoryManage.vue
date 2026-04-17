@@ -3,7 +3,7 @@
     <div class="management-header">
       <h2>分类管理</h2>
       <button class="btn btn-primary" @click="showCreateModal = true">
-        <span>➕</span> 新建分类
+        <span>+</span> 新建分类
       </button>
     </div>
 

@@ -1,34 +1,48 @@
 <template>
   <div class="home">
     <section class="hero">
+      <!-- 背景图片轮播 -->
+      <div class="hero-bg-slides">
+        <transition name="fade">
+          <img
+            :key="currentBgIndex"
+            :src="bgImages[currentBgIndex]"
+            class="hero-bg-image"
+            alt="背景"
+          />
+        </transition>
+        <div class="hero-bg-overlay"></div>
+      </div>
+
+      <!-- 轮播指示器 -->
+      <div class="hero-indicators">
+        <button
+          v-for="(img, i) in bgImages"
+          :key="i"
+          class="indicator-dot"
+          :class="{ active: i === currentBgIndex }"
+          @click="currentBgIndex = i"
+        ></button>
+      </div>
+
       <div class="hero-content">
-        <div class="hero-text">
-          <h1 class="hero-title">
-            <span class="title-line">欢迎来到</span>
-            <span class="title-highlight">Cocona Blog</span>
-            <span class="title-emoji">✨</span>
-          </h1>
-          <p class="hero-description">
-            记录技术探索与生活感悟的奇妙旅程
-          </p>
-          <div class="hero-actions">
-            <router-link to="/articles" class="btn btn-primary sparkle">
-              <span>开始探索</span>
-              <span>🚀</span>
-            </router-link>
-            <router-link to="/about" class="btn btn-secondary">
-              <span>了解更多</span>
-              <span>💫</span>
-            </router-link>
-          </div>
-        </div>
-        <div class="hero-illustration">
-          <div class="floating-elements">
-            <span class="float-item" style="--delay: 0s">🌸</span>
-            <span class="float-item" style="--delay: 0.5s">💖</span>
-            <span class="float-item" style="--delay: 1s">✨</span>
-            <span class="float-item" style="--delay: 1.5s">🎨</span>
-            <span class="float-item" style="--delay: 2s">💫</span>
+        <div class="hero-glass">
+          <div class="hero-text">
+            <h1 class="hero-title">
+              <span class="title-line">欢迎来到</span>
+              <span class="title-highlight">Cocona Blog</span>
+            </h1>
+            <p class="hero-description">
+              记录技术探索与生活感悟的奇妙旅程
+            </p>
+            <div class="hero-actions">
+              <router-link to="/articles" class="btn btn-glass-primary">
+                <span>开始探索</span>
+              </router-link>
+              <router-link to="/about" class="btn btn-glass-secondary">
+                <span>了解更多</span>
+              </router-link>
+            </div>
           </div>
         </div>
       </div>
@@ -37,8 +51,7 @@
     <section class="featured-section container">
       <div class="section-header">
         <h2 class="section-title">
-          <span class="title-icon">📝</span>
-          <span>最新文章</span>
+          <span>📰 最新文章</span>
         </h2>
         <router-link to="/articles" class="view-all">
           查看全部 →
@@ -59,7 +72,7 @@
       </div>
 
       <div v-else class="empty-state">
-        <div class="empty-icon">📝</div>
+        <div class="empty-icon"></div>
         <h3 class="empty-title">暂无文章</h3>
         <p class="empty-desc">敬请期待更多精彩内容~</p>
       </div>
@@ -67,13 +80,12 @@
 
     <section class="features-section container">
       <h2 class="section-title centered">
-        <span class="title-icon">🌟</span>
-        <span>博客特色</span>
+        <span>🌈 博客特色</span>
       </h2>
 
       <div class="features-grid">
         <div class="feature-card card">
-          <div class="feature-icon">🎨</div>
+          <div class="feature-emoji">🎨</div>
           <h3 class="feature-title">专属风格</h3>
           <p class="feature-desc">
             可爱的UI设计，梦幻的配色方案，让你感受动漫的魅力
@@ -81,7 +93,7 @@
         </div>
 
         <div class="feature-card card">
-          <div class="feature-icon">💻</div>
+          <div class="feature-emoji">💡</div>
           <h3 class="feature-title">技术分享</h3>
           <p class="feature-desc">
             前端、后端、设计，多领域技术文章，助你成长
@@ -89,7 +101,7 @@
         </div>
 
         <div class="feature-card card">
-          <div class="feature-icon">💖</div>
+          <div class="feature-emoji">💬</div>
           <h3 class="feature-title">互动交流</h3>
           <p class="feature-desc">
             点赞、评论、分享，与博主和其他读者互动
@@ -97,7 +109,7 @@
         </div>
 
         <div class="feature-card card">
-          <div class="feature-icon">🌙</div>
+          <div class="feature-emoji">🚀</div>
           <h3 class="feature-title">持续更新</h3>
           <p class="feature-desc">
             定期更新优质内容，总有新的发现等着你
@@ -109,22 +121,22 @@
     <section class="stats-section container">
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon">📊</div>
+          <div class="stat-emoji">📚</div>
           <div class="stat-value">{{ blogStore.totalArticles }}</div>
           <div class="stat-label">篇文章</div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">👁️</div>
+          <div class="stat-emoji">👀</div>
           <div class="stat-value">{{ formatNumber(blogStore.totalViews) }}</div>
           <div class="stat-label">次浏览</div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">💖</div>
+          <div class="stat-emoji">❤️</div>
           <div class="stat-value">{{ formatNumber(blogStore.totalLikes) }}</div>
           <div class="stat-label">个点赞</div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon">🏷️</div>
+          <div class="stat-emoji">🏷️</div>
           <div class="stat-value">{{ blogStore.allTags.length }}</div>
           <div class="stat-label">个标签</div>
         </div>
@@ -134,15 +146,35 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useBlogStore } from '@/store/blog'
 import ArticleCard from '@/components/ArticleCard.vue'
 
 const blogStore = useBlogStore()
 
+// 背景图片轮播（public 目录，运行时路径）
+const bgImages = [
+  '/images/hero/bg1.jpg',
+  '/images/hero/bg2.png',
+  '/images/hero/bg3.png'
+]
+const currentBgIndex = ref(0)
+let bgTimer: ReturnType<typeof setInterval> | null = null
+
+function startBgCarousel() {
+  bgTimer = setInterval(() => {
+    currentBgIndex.value = (currentBgIndex.value + 1) % bgImages.length
+  }, 5000)
+}
+
 onMounted(async () => {
   await blogStore.fetchArticles({ pageSize: 3 })
   await blogStore.fetchTags()
+  startBgCarousel()
+})
+
+onUnmounted(() => {
+  if (bgTimer) clearInterval(bgTimer)
 })
 
 const latestArticles = computed(() => 
@@ -163,42 +195,106 @@ function formatNumber(num: number): string {
 }
 
 .hero {
-  background: linear-gradient(135deg, var(--bg-primary) 0%, #ffeef3 100%);
-  padding: var(--spacing-2xl) 0;
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   position: relative;
   overflow: hidden;
+  padding-bottom: var(--spacing-xl);
 }
 
-.hero::before {
-  content: '';
+/* 背景轮播 */
+.hero-bg-slides {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 30%, rgba(255, 107, 157, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(124, 77, 255, 0.1) 0%, transparent 50%);
-  pointer-events: none;
+  inset: 0;
+  z-index: 0;
 }
 
+.hero-bg-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  position: absolute;
+  inset: 0;
+}
+
+.hero-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.25),
+    rgba(124, 77, 255, 0.15)
+  );
+}
+
+/* 轮播指示器 */
+.hero-indicators {
+  position: absolute;
+  bottom: var(--spacing-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 2;
+}
+
+.indicator-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.indicator-dot.active {
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(1.3);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.indicator-dot:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* 淡入淡出动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 1s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 内容容器 - 左对齐 */
 .hero-content {
-  container: default;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--spacing-2xl) var(--spacing-lg);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-2xl);
-  align-items: center;
+  max-width: 640px;
+  width: 100%;
+  padding: var(--spacing-2xl) calc(var(--spacing-lg) + var(--spacing-xl));
   position: relative;
   z-index: 1;
+}
+
+/* 毛玻璃卡片 - 已取消毛玻璃背景 */
+.hero-glass {
+  position: relative;
 }
 
 .hero-text {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  align-items: flex-start;
+  position: relative;
+  z-index: 1;
+  padding: var(--spacing-3xl) var(--spacing-2xl);
 }
 
 .hero-title {
@@ -211,28 +307,27 @@ function formatNumber(num: number): string {
 }
 
 .title-line {
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 1.5rem;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .title-highlight {
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #fff 0%, #ffd6e7 50%, #c4b5fd 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-size: 3.5rem;
-}
-
-.title-emoji {
-  font-size: 2.5rem;
-  display: inline-block;
-  animation: float 3s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(124, 77, 255, 0.25));
 }
 
 .hero-description {
   font-size: 1.2rem;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.85);
   line-height: 1.8;
+  max-width: 460px;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.12);
 }
 
 .hero-actions {
@@ -241,45 +336,61 @@ function formatNumber(num: number): string {
   margin-top: var(--spacing-md);
 }
 
-.hero-illustration {
-  display: flex;
+/* 毛玻璃按钮 */
+.btn-glass-primary {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-height: 400px;
+  gap: 8px;
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  background: rgba(255, 107, 157, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 4px 20px rgba(255, 107, 157, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
 }
 
-.floating-elements {
-  position: relative;
-  width: 300px;
-  height: 300px;
+.btn-glass-primary:hover {
+  background: rgba(255, 107, 157, 0.5);
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 28px rgba(255, 107, 157, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
-.float-item {
-  position: absolute;
-  font-size: 3rem;
-  animation: floatRandom 6s ease-in-out infinite;
-  animation-delay: var(--delay);
+.btn-glass-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
 }
 
-.float-item:nth-child(1) { top: 0; left: 50%; }
-.float-item:nth-child(2) { top: 25%; right: 0; }
-.float-item:nth-child(3) { bottom: 25%; right: 10%; }
-.float-item:nth-child(4) { bottom: 0; left: 50%; }
-.float-item:nth-child(5) { top: 25%; left: 0; }
-
-@keyframes floatRandom {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  25% {
-    transform: translate(10px, -20px) rotate(10deg);
-  }
-  50% {
-    transform: translate(-10px, -10px) rotate(-10deg);
-  }
-  75% {
-    transform: translate(15px, 5px) rotate(5deg);
-  }
+.btn-glass-secondary:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .featured-section {
@@ -305,10 +416,6 @@ function formatNumber(num: number): string {
 .section-title.centered {
   justify-content: center;
   margin-bottom: var(--spacing-xl);
-}
-
-.title-icon {
-  font-size: 2rem;
 }
 
 .view-all {
@@ -389,10 +496,9 @@ function formatNumber(num: number): string {
   padding: var(--spacing-xl);
 }
 
-.feature-icon {
-  font-size: 3rem;
-  margin-bottom: var(--spacing-md);
-  animation: float 3s ease-in-out infinite;
+.feature-emoji {
+  font-size: 2.5rem;
+  margin-bottom: var(--spacing-sm);
 }
 
 .feature-title {
@@ -432,8 +538,8 @@ function formatNumber(num: number): string {
   box-shadow: var(--shadow-hover);
 }
 
-.stat-icon {
-  font-size: 2.5rem;
+.stat-emoji {
+  font-size: 2rem;
   margin-bottom: var(--spacing-sm);
 }
 
@@ -448,10 +554,19 @@ function formatNumber(num: number): string {
   opacity: 0.9;
 }
 
-@media (max-width: 968px) {
+@media (max-width: 768px) {
+  .hero {
+    min-height: 60vh;
+    justify-content: center;
+  }
+
   .hero-content {
-    grid-template-columns: 1fr;
-    text-align: center;
+    padding: var(--spacing-lg);
+  }
+
+  .hero-text {
+    align-items: center;
+    padding: var(--spacing-2xl) var(--spacing-lg);
   }
 
   .hero-title {
@@ -462,21 +577,19 @@ function formatNumber(num: number): string {
     font-size: 2.5rem;
   }
 
+  .hero-description {
+    font-size: 1rem;
+    text-align: center;
+  }
+
   .hero-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .btn-glass-primary,
+  .btn-glass-secondary {
     justify-content: center;
-  }
-
-  .hero-illustration {
-    min-height: 200px;
-  }
-
-  .floating-elements {
-    width: 200px;
-    height: 200px;
-  }
-
-  .float-item {
-    font-size: 2rem;
   }
 }
 

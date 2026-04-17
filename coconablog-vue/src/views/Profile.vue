@@ -3,7 +3,10 @@
     <div class="profile-header">
       <div class="container">
         <div class="profile-info">
-          <div class="profile-avatar">👤</div>
+          <div class="profile-avatar">
+            <img v-if="user?.avatar" :src="user.avatar" alt="头像" />
+            <span v-else>{{ user?.username?.charAt(0) }}</span>
+          </div>
           <div class="profile-details">
             <h1 class="profile-name">{{ user?.username }}</h1>
             <p class="profile-email">{{ user?.email }}</p>
@@ -45,7 +48,7 @@
           <div class="tab-header">
             <h2>我的文章</h2>
             <router-link to="/create-article" class="btn btn-primary">
-              <span>✏️</span> 发布文章
+              <span>发布文章</span>
             </router-link>
           </div>
 
@@ -59,12 +62,12 @@
           </div>
 
           <div v-if="loading" class="loading-state">
-            <span class="loading-spinner">🌸</span>
+            <span class="loading-spinner"></span>
             <p>加载中...</p>
           </div>
 
           <div v-else-if="myArticles.length === 0" class="empty-state">
-            <span class="empty-icon">📝</span>
+            <span class="empty-icon"></span>
             <p>暂无文章</p>
             <router-link to="/create-article" class="btn btn-primary">发布第一篇文章</router-link>
           </div>
@@ -79,13 +82,13 @@
                 <p class="article-summary">{{ article.summary || '暂无摘要' }}</p>
                 <div class="article-meta">
                   <span class="meta-item">
-                    <span>👁️</span> {{ article.viewCount }}
+                    <span>浏览:</span> {{ article.viewCount }}
                   </span>
                   <span class="meta-item">
-                    <span>💖</span> {{ article.likeCount }}
+                    <span>点赞:</span> {{ article.likeCount }}
                   </span>
                   <span class="meta-item">
-                    <span>💬</span> {{ article.commentCount }}
+                    <span>评论:</span> {{ article.commentCount }}
                   </span>
                   <span class="meta-item status" :class="getStatusClass(article.status)">
                     {{ getStatusText(article.status) }}
@@ -94,13 +97,13 @@
               </div>
               <div class="article-actions">
                 <router-link :to="`/edit-article/${article.id}`" class="action-btn edit" v-if="article.status !== 2">
-                  <span>✏️</span>
+                  <span>编辑</span>
                 </router-link>
                 <button class="action-btn delete" @click="handleDelete(article)" v-if="article.status !== 2">
-                  <span>🗑️</span>
+                  <span>删除</span>
                 </button>
                 <button class="action-btn restore" @click="handleRestore(article)" v-if="article.status === 2">
-                  <span>♻️</span>
+                  <span>恢复</span>
                 </button>
               </div>
             </div>
@@ -120,8 +123,24 @@
               <input v-model="profileForm.email" type="email" class="form-input" />
             </div>
             <div class="form-group">
-              <label class="form-label">头像URL</label>
-              <input v-model="profileForm.avatar" type="url" class="form-input" placeholder="头像图片地址" />
+              <label class="form-label">头像</label>
+              <div class="avatar-selector">
+                <div class="current-avatar">
+                  <img v-if="profileForm.avatar" :src="profileForm.avatar" alt="当前头像" />
+                  <span v-else class="avatar-placeholder">{{ user?.username?.charAt(0) }}</span>
+                </div>
+                <div class="avatar-grid">
+                  <div
+                    v-for="(avatar, index) in defaultAvatars"
+                    :key="index"
+                    class="avatar-option"
+                    :class="{ selected: profileForm.avatar === avatar }"
+                    @click="selectAvatar(avatar)"
+                  >
+                    <img :src="avatar" :alt="`头像${index + 1}`" />
+                  </div>
+                </div>
+              </div>
             </div>
             <button type="submit" class="btn btn-primary" :disabled="updating">
               {{ updating ? '保存中...' : '保存修改' }}
@@ -133,7 +152,7 @@
           <h2>我的评论</h2>
           
           <div v-if="myComments.length === 0" class="empty-state">
-            <span class="empty-icon">💬</span>
+            <span class="empty-icon"></span>
             <p>暂无评论</p>
           </div>
 
@@ -175,9 +194,9 @@ const myComments = ref<CommentInfo[]>([])
 const defaultCover = 'https://picsum.photos/seed/default/300/200'
 
 const tabs = [
-  { key: 'articles', name: '我的文章', icon: '📝' },
-  { key: 'comments', name: '我的评论', icon: '💬' },
-  { key: 'settings', name: '个人设置', icon: '⚙️' }
+  { key: 'articles', name: '我的文章', icon: '' },
+  { key: 'comments', name: '我的评论', icon: '' },
+  { key: 'settings', name: '个人设置', icon: '' }
 ]
 
 const stats = reactive({
@@ -191,6 +210,24 @@ const profileForm = reactive({
   email: '',
   avatar: ''
 })
+
+const defaultAvatars = [
+  '/images/profilePicture/13427b1e0d21dfdd6eeac75a14e96b65292858751.jpg',
+  '/images/profilePicture/20990388f15d32c54d47e8ddf054e28c477075301.jpg',
+  '/images/profilePicture/2e8b437868319910f9aa88ef9f2194ec292858751.jpg',
+  '/images/profilePicture/8e9b8b1ad7c667f3af70278f5657598b292858751.jpg',
+  '/images/profilePicture/仙狐头像.png',
+  '/images/profilePicture/aa107ce4515aeabe352196b47782fce0292858751.jpg',
+  '/images/profilePicture/aece9270c3c6fa2a3adc66e73009126b477075301.jpg',
+  '/images/profilePicture/c87c50951b551ecae43f84eecbaa7e21477075301.jpg',
+  '/images/profilePicture/cf02cb664d9a598d0639142f733cb742292858751.jpg',
+  '/images/profilePicture/d0bf62cdf55f34cfef8b0357b7ac4bdc292858751.jpg',
+  '/images/profilePicture/Java_Edition_icon_2.png'
+]
+
+function selectAvatar(avatarUrl: string) {
+  profileForm.avatar = avatarUrl
+}
 
 const filteredArticles = computed(() => {
   if (articleFilter.value === 'all') return myArticles.value
@@ -287,15 +324,21 @@ async function handleRestore(article: Article) {
 async function handleUpdateProfile() {
   updating.value = true
   try {
-    await authApi.updateProfile({
+    const updateData: any = {
       username: profileForm.username,
-      email: profileForm.email,
-      avatar: profileForm.avatar
-    })
+      email: profileForm.email
+    }
+    if (profileForm.avatar && profileForm.avatar.trim()) {
+      updateData.avatar = profileForm.avatar
+    }
+    
+    await authApi.updateProfile(updateData)
     await fetchProfile()
     alert('个人资料更新成功')
   } catch (e: any) {
-    alert(e.response?.data?.message || '更新失败')
+    const errorMsg = e.response?.data?.message || e.message || '更新失败，请稍后重试'
+    console.error('更新个人资料失败:', e)
+    alert(errorMsg)
   } finally {
     updating.value = false
   }
@@ -342,6 +385,13 @@ async function handleDeleteComment(comment: CommentInfo) {
   justify-content: center;
   font-size: 4rem;
   box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .profile-name {
@@ -623,6 +673,75 @@ async function handleDeleteComment(comment: CommentInfo) {
 .form-input:focus {
   outline: none;
   border-color: var(--primary-color);
+}
+
+.avatar-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.current-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--border-color);
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.current-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  font-size: 2rem;
+  color: white;
+  font-weight: 700;
+}
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: var(--spacing-sm);
+  max-height: 300px;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  background: var(--bg-hover);
+  border-radius: var(--border-radius-sm);
+}
+
+.avatar-option {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all var(--transition-normal);
+  background: var(--bg-card);
+}
+
+.avatar-option:hover {
+  transform: scale(1.1);
+  border-color: var(--primary-light);
+}
+
+.avatar-option.selected {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(107, 179, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.avatar-option img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .comments-list {

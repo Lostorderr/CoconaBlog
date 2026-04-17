@@ -20,7 +20,7 @@
         <div v-for="comment in filteredComments" :key="comment.id" class="comment-card">
           <div class="comment-header">
             <span class="comment-user">
-              <span class="user-avatar">👤</span>
+              <span class="user-avatar">{{ comment.user?.username?.charAt(0) }}</span>
               {{ comment.user?.username || '匿名' }}
             </span>
             <span class="comment-date">{{ formatDate(comment.createTime) }}</span>
@@ -31,7 +31,7 @@
           <div class="comment-content">{{ comment.content }}</div>
           <div class="comment-footer">
             <span class="comment-stats">
-              💖 {{ comment.likeCount }}
+              {{ comment.likeCount }} 赞
             </span>
             <div class="comment-actions">
               <button v-if="comment.status === 1" class="btn-sm btn-approve" @click="approveComment(comment)">

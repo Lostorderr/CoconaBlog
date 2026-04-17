@@ -3,7 +3,7 @@
     <div class="login-container">
       <div class="login-card">
         <div class="login-header">
-          <div class="logo">🌸</div>
+          <div class="logo">CB</div>
           <h1 class="title">欢迎回来</h1>
           <p class="subtitle">登录你的账户</p>
         </div>

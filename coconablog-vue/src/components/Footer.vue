@@ -3,11 +3,10 @@
     <div class="footer-content container">
       <div class="footer-section">
         <div class="footer-brand">
-          <span class="brand-icon">🌸</span>
           <span class="brand-text">Cocona Blog</span>
         </div>
         <p class="footer-desc">
-          一个个人博客，记录技术与生活的点滴 ✨
+          一个个人博客，记录技术与生活的点滴
         </p>
       </div>
 
@@ -23,9 +22,9 @@
       <div class="footer-section">
         <h4 class="footer-title">联系方式</h4>
         <div class="footer-links">
-          <a href="mailto:842622982@qq.com" class="footer-link">📧 842622982@qq.com</a>
-          <a href="https://github.com/Lostorderr" target="_blank" class="footer-link">💻 GitHub</a>
-          <a href="https://space.bilibili.com/113969638" target="_blank" class="footer-link">📺 Bilibili</a>
+          <a href="mailto:842622982@qq.com" class="footer-link">Email: 842622982@qq.com</a>
+          <a href="https://github.com/Lostorderr" target="_blank" class="footer-link">GitHub</a>
+          <a href="https://space.bilibili.com/113969638" target="_blank" class="footer-link">Bilibili</a>
         </div>
       </div>
 
@@ -43,11 +42,11 @@
     <div class="footer-bottom">
       <div class="container">
         <p class="copyright">
-          © {{ currentYear }} Cocona Blog. Made with 💖 and ☕
+          © {{ currentYear }} Cocona Blog. Made with love
         </p>
         <div class="footer-decoration">
-          <span>✨</span>
           <span>🌸</span>
+          <span>💜</span>
           <span>✨</span>
         </div>
       </div>
@@ -99,11 +98,6 @@ const currentYear = computed(() => new Date().getFullYear())
   gap: var(--spacing-sm);
   font-size: 1.5rem;
   font-weight: 700;
-}
-
-.brand-icon {
-  font-size: 2rem;
-  animation: float 3s ease-in-out infinite;
 }
 
 .brand-text {

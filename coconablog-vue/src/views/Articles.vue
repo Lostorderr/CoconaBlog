@@ -3,7 +3,6 @@
     <div class="page-header">
       <div class="container">
         <h1 class="page-title">
-          <span class="title-icon">📝</span>
           <span>文章列表</span>
         </h1>
         <p class="page-description">
@@ -42,7 +41,7 @@
                 placeholder="搜索文章..."
                 class="search-input"
               />
-              <span class="search-icon">🔍</span>
+              <span class="search-icon"></span>
             </div>
           </div>
 
@@ -60,7 +59,7 @@
           </div>
 
           <div v-else class="empty-state">
-            <div class="empty-icon">🔍</div>
+            <div class="empty-icon"></div>
             <h3 class="empty-title">没有找到相关文章</h3>
             <p class="empty-desc">试试其他关键词或分类吧~</p>
           </div>
