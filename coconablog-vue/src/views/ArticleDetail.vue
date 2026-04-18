@@ -335,15 +335,35 @@ async function handleLike() {
 }
 
 function handleShare() {
-  if (navigator.share) {
-    navigator.share({
-      title: article.value?.title,
-      url: window.location.href
-    })
-  } else {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(window.location.href)
-    alert('链接已复制到剪贴板！')
+      .then(() => showCopySuccess())
+      .catch(() => fallbackCopy())
+  } else {
+    fallbackCopy()
   }
+}
+
+function showCopySuccess() {
+  const toast = document.createElement('div')
+  toast.textContent = '链接已复制到剪贴板！'
+  toast.style.cssText = `
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.8); color: white; padding: 10px 24px;
+    border-radius: 8px; font-size: 14px; z-index: 9999;
+    animation: fadeInOut 2s ease forwards;`
+  document.body.appendChild(toast)
+  setTimeout(() => toast.remove(), 2000)
+}
+
+function fallbackCopy() {
+  const input = document.createElement('input')
+  input.value = window.location.href
+  document.body.appendChild(input)
+  input.select()
+  document.execCommand('copy')
+  document.body.removeChild(input)
+  showCopySuccess()
 }
 
 async function submitComment() {
@@ -1001,6 +1021,13 @@ function navigateToArticle(id: number) {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 }
 
 .loading-text {

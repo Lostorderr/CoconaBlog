@@ -74,9 +74,6 @@
 
           <div v-else class="articles-list">
             <div v-for="article in filteredArticles" :key="article.id" class="article-item">
-              <div class="article-cover">
-                <img :src="article.coverImage || defaultCover" :alt="article.title" />
-              </div>
               <div class="article-info">
                 <h3 class="article-title">{{ article.title }}</h3>
                 <p class="article-summary">{{ article.summary || '暂无摘要' }}</p>
@@ -191,7 +188,6 @@ const loading = ref(false)
 const updating = ref(false)
 const myArticles = ref<Article[]>([])
 const myComments = ref<CommentInfo[]>([])
-const defaultCover = 'https://picsum.photos/seed/default/300/200'
 
 const tabs = [
   { key: 'articles', name: '我的文章', icon: '' },
@@ -511,20 +507,6 @@ async function handleDeleteComment(comment: CommentInfo) {
   box-shadow: var(--shadow-sm);
 }
 
-.article-cover {
-  width: 150px;
-  height: 100px;
-  border-radius: var(--border-radius-sm);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.article-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 .article-info {
   flex: 1;
   min-width: 0;
@@ -800,11 +782,6 @@ async function handleDeleteComment(comment: CommentInfo) {
 
   .article-item {
     flex-direction: column;
-  }
-
-  .article-cover {
-    width: 100%;
-    height: 150px;
   }
 
   .article-actions {

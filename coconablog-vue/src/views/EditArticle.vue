@@ -110,30 +110,31 @@
                     <button type="button" class="remove-tag" @click="removeTag(tagId)">×</button>
                   </span>
                 </div>
-                <select class="tag-select" @change="addTag($event)">
-                  <option value="">选择标签</option>
-                  <option v-for="tag in availableTags" :key="tag.id" :value="tag.id">
-                    {{ tag.name }}
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">状态</label>
-              <div class="status-options">
-                <label class="status-option">
-                  <input type="radio" v-model="form.status" :value="0" />
-                  <span class="status-label">
-                    <span class="status-icon">草稿</span>
-                  </span>
-                </label>
-                <label class="status-option">
-                  <input type="radio" v-model="form.status" :value="1" />
-                  <span class="status-label">
-                    <span class="status-icon">发布</span>
-                  </span>
-                </label>
+                <div class="tag-input-wrapper">
+                  <input
+                    ref="tagInputRef"
+                    type="text"
+                    class="tag-input"
+                    v-model="tagInputText"
+                    @input="onTagInput"
+                    @keydown.enter.prevent="handleTagEnter"
+                    @keydown.down.prevent="moveTagSuggestion(1)"
+                    @keydown.up.prevent="moveTagSuggestion(-1)"
+                    @focus="showTagSuggestions = true"
+                    @blur="hideTagSuggestions"
+                    placeholder="输入标签，回车创建"
+                  />
+                  <ul v-if="showTagSuggestions && filteredTagSuggestions.length > 0" class="tag-suggestions">
+                    <li
+                      v-for="(suggestion, index) in filteredTagSuggestions"
+                      :key="suggestion.id ?? 'new-' + index"
+                      :class="{ active: tagSuggestionIndex === index }"
+                      @mousedown.prevent="selectSuggestion(suggestion)"
+                    >
+                      {{ suggestion.isNew ? '+ 创建: ' + suggestion.name : suggestion.name }}
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -145,11 +146,11 @@
             </div>
 
             <div class="form-actions">
-              <button type="button" class="btn btn-secondary" @click="goBack">
-                取消
+              <button type="button" class="btn btn-secondary" @click="saveDraft" :disabled="submitting">
+                保存草稿
               </button>
               <button type="submit" class="btn btn-primary" :disabled="submitting">
-                {{ submitting ? '保存中...' : '保存修改' }}
+                {{ submitting ? '发布中...' : '发布文章' }}
               </button>
             </div>
           </div>
@@ -164,6 +165,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBlogStore } from '@/store/blog'
 import { articleApi } from '@/api/article'
+import { tagApi } from '@/api/tag'
 import { useAuth } from '@/composables/useApi'
 
 const route = useRoute()
@@ -172,8 +174,14 @@ const blogStore = useBlogStore()
 const { isLoggedIn } = useAuth()
 
 const contentEditor = ref<HTMLTextAreaElement | null>(null)
+const tagInputRef = ref<HTMLInputElement | null>(null)
 const loading = ref(true)
 const submitting = ref(false)
+const tagInputText = ref('')
+const showTagSuggestions = ref(false)
+const tagSuggestionIndex = ref(0)
+// 保存文章自带标签的名称映射（避免依赖全局列表）
+const articleTagNames = ref<Map<number, string>>(new Map())
 
 const form = reactive({
   title: '',
@@ -187,11 +195,36 @@ const form = reactive({
 })
 
 const categories = computed(() => blogStore.categories)
-const tags = computed(() => blogStore.tags)
+const allTags = computed(() => Array.isArray(blogStore.tags) ? blogStore.tags : [])
 
-const availableTags = computed(() => 
-  tags.value.filter(t => !form.tagIds.includes(t.id))
-)
+const availableTags = computed(() => {
+  const tagList = Array.isArray(allTags.value) ? allTags.value : []
+  return tagList.filter(t => !form.tagIds.includes(t.id))
+})
+
+// 过滤匹配的已有标签 + 新建建议
+const filteredTagSuggestions = computed(() => {
+  const keyword = tagInputText.value.trim().toLowerCase()
+  const result: Array<{ id: number; name: string; isNew: boolean }> = []
+
+  // 有输入文字时：第一个选项是"创建标签"
+  if (keyword) {
+    result.push({ id: -1, name: keyword, isNew: true })
+
+    const tagList = Array.isArray(allTags.value) ? allTags.value : []
+    const matched = availableTags.value
+      .filter(t => t.name.toLowerCase().includes(keyword))
+      .slice(0, 5)
+      .map(t => ({ ...t, isNew: false }))
+    result.push(...matched)
+  } else {
+    // 未输入时：显示已有的可选标签供选择
+    const shown = availableTags.value.slice(0, 8).map(t => ({ ...t, isNew: false }))
+    result.push(...shown)
+  }
+
+  return result
+})
 
 onMounted(async () => {
   if (!isLoggedIn.value) {
@@ -221,6 +254,12 @@ async function loadArticle() {
     form.content = article.content
     form.categoryId = article.categoryId
     form.tagIds = article.tags?.map(t => t.id) || []
+    // 保存文章自带标签的名称，确保编辑时能正确显示
+    const nameMap = new Map<number, string>()
+    article.tags?.forEach((t: any) => {
+      if (t.id && t.name) nameMap.set(t.id, t.name)
+    })
+    articleTagNames.value = nameMap
     form.status = article.status
     form.isTop = article.isTop
   } catch {
@@ -232,16 +271,65 @@ async function loadArticle() {
 }
 
 function getTagName(id: number): string {
-  return tags.value.find(t => t.id === id)?.name || ''
+  if (id < 0) return ''
+  // 优先从文章自带标签名称中查找，再从全局列表查找
+  if (articleTagNames.value.has(id)) {
+    return articleTagNames.value.get(id) || ''
+  }
+  const tagList = Array.isArray(allTags.value) ? allTags.value : []
+  return tagList.find(t => t.id === id)?.name || ''
 }
 
-function addTag(event: Event) {
-  const select = event.target as HTMLSelectElement
-  const value = parseInt(select.value)
-  if (value && !form.tagIds.includes(value)) {
-    form.tagIds.push(value)
+function onTagInput() {
+  showTagSuggestions.value = true
+  tagSuggestionIndex.value = 0
+}
+
+async function handleTagEnter() {
+  if (filteredTagSuggestions.value.length > 0) {
+    const suggestion = filteredTagSuggestions.value[tagSuggestionIndex.value] || filteredTagSuggestions.value[0]
+    await selectSuggestion(suggestion)
   }
-  select.value = ''
+}
+
+async function selectSuggestion(suggestion: { id: number; name: string; isNew: boolean }) {
+  if (suggestion.isNew) {
+    try {
+      const rawSlug = suggestion.name.trim()
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\u4e00-\u9fff-]/g, '')
+        .replace(/^-+|-+$/g, '')
+      const slug = rawSlug || ('tag-' + Date.now())
+      
+      const res = await tagApi.create({ name: suggestion.name, slug })
+      form.tagIds.push(res.data.id)
+      await blogStore.fetchTags()
+    } catch (e: any) {
+      const msg = e.response?.data?.message || e.message || '创建标签失败'
+      alert(msg)
+    }
+  } else {
+    if (!form.tagIds.includes(suggestion.id)) {
+      form.tagIds.push(suggestion.id)
+    }
+  }
+  tagInputText.value = ''
+  showTagSuggestions.value = false
+  tagSuggestionIndex.value = 0
+  tagInputRef.value?.focus()
+}
+
+function moveTagSuggestion(delta: number) {
+  const len = filteredTagSuggestions.value.length
+  if (len === 0) return
+  tagSuggestionIndex.value = (tagSuggestionIndex.value + delta + len) % len
+}
+
+function hideTagSuggestions() {
+  setTimeout(() => {
+    showTagSuggestions.value = false
+  }, 200)
 }
 
 function removeTag(id: number) {
@@ -281,14 +369,43 @@ async function handleSubmit() {
       content: form.content.trim(),
       categoryId: form.categoryId || undefined,
       tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
-      status: form.status,
+      status: 1,
       isTop: form.isTop
     })
     
-    alert('文章更新成功！')
+    alert('文章发布成功！')
     router.push('/profile')
   } catch (e: any) {
     alert(e.response?.data?.message || '更新失败')
+  } finally {
+    submitting.value = false
+  }
+}
+
+async function saveDraft() {
+  if (!form.title.trim() || !form.content.trim()) {
+    alert('请填写文章标题和内容')
+    return
+  }
+
+  submitting.value = true
+  try {
+    const id = parseInt(route.params.id as string)
+    await articleApi.update(id, {
+      title: form.title.trim(),
+      slug: form.slug.trim() || undefined,
+      summary: form.summary.trim() || undefined,
+      content: form.content.trim(),
+      categoryId: form.categoryId || undefined,
+      tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
+      status: 0,
+      isTop: form.isTop
+    })
+
+    alert('草稿保存成功！')
+    router.push('/profile')
+  } catch (e: any) {
+    alert(e.response?.data?.message || '保存失败')
   } finally {
     submitting.value = false
   }
@@ -482,47 +599,55 @@ function goBack() {
   line-height: 1;
 }
 
-.tag-select {
-  padding: var(--spacing-sm);
+.tag-input-wrapper {
+  position: relative;
+}
+
+.tag-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
   border: 2px solid var(--border-color);
   border-radius: var(--border-radius-sm);
   font-size: 0.9rem;
-}
-
-.status-options {
-  display: flex;
-  gap: var(--spacing-md);
-}
-
-.status-option {
-  flex: 1;
-  cursor: pointer;
-}
-
-.status-option input {
-  display: none;
-}
-
-.status-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-md);
-  background: var(--bg-hover);
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
+  background: var(--bg-card);
   transition: all var(--transition-normal);
 }
 
-.status-option input:checked + .status-label {
-  background: var(--gradient-primary);
-  color: white;
-  border-color: transparent;
+.tag-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.1);
 }
 
-.status-icon {
-  font-size: 1.2rem;
+.tag-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 4px;
+  padding: var(--spacing-xs) 0;
+  background: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  box-shadow: var(--shadow-md);
+  list-style: none;
+}
+
+.tag-suggestions li {
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+
+.tag-suggestions li:hover,
+.tag-suggestions li.active {
+  background: rgba(255, 107, 157, 0.08);
+  color: var(--primary-color);
 }
 
 .checkbox-label {
@@ -561,10 +686,6 @@ function goBack() {
 @media (max-width: 768px) {
   .form-row {
     grid-template-columns: 1fr;
-  }
-
-  .status-options {
-    flex-direction: column;
   }
 }
 </style>

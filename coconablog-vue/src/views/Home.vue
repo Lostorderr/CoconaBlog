@@ -319,7 +319,9 @@ function formatNumber(num: number): string {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   font-size: 3.5rem;
+  line-height: 1.2;
   filter: drop-shadow(0 4px 12px rgba(124, 77, 255, 0.25));
+  padding-bottom: 4px;
 }
 
 .hero-description {
