@@ -3,7 +3,7 @@
     <div class="container">
       <div class="page-header">
         <h1 class="page-title">编辑文章</h1>
-        <p class="page-subtitle">修改你的文章内容</p>
+        <p class="page-subtitle">修改你的文章</p>
       </div>
 
       <div v-if="loading" class="loading-state">
@@ -14,7 +14,7 @@
       <form v-else class="article-form" @submit.prevent="handleSubmit">
         <div class="form-main">
           <div class="form-group">
-            <label class="form-label">文章标题 *</label>
+            <label class="form-label">标题 *</label>
             <input
               v-model="form.title"
               type="text"
@@ -35,85 +35,60 @@
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">标签</label>
-              <div class="tags-input-inline">
+              <label class="form-label">Tags</label>
+              <div class="tags-field">
                 <div class="selected-tags-inline">
                   <span v-for="tagId in form.tagIds" :key="tagId" class="selected-tag-inline">
                     {{ getTagName(tagId) }}
-                    <button type="button" class="remove-tag" @click="removeTag(tagId)">×</button>
+                    <button type="button" class="remove-tag" @click.stop="removeTag(tagId)">x</button>
                   </span>
                 </div>
-                <div class="tag-input-wrapper">
+                <div class="tags-input-wrap">
                   <input
                     ref="tagInputRef"
                     type="text"
-                    class="tag-input tag-input-inline"
+                    class="tag-input-field"
                     v-model="tagInputText"
                     @input="onTagInput"
                     @keydown.enter.prevent="handleTagEnter"
                     @keydown.down.prevent="moveTagSuggestion(1)"
                     @keydown.up.prevent="moveTagSuggestion(-1)"
-                    @focus="showTagSuggestions = true"
-                    @blur="hideTagSuggestions"
+                    @focus="onTagFocus"
                     placeholder="输入标签..."
                   />
-                  <ul v-if="showTagSuggestions && filteredTagSuggestions.length > 0" class="tag-suggestions tag-suggestions-inline">
-                    <li
-                      v-for="(suggestion, index) in filteredTagSuggestions"
-                      :key="suggestion.id ?? 'new-' + index"
-                      :class="{ active: tagSuggestionIndex === index }"
-                      @mousedown.prevent="selectSuggestion(suggestion)"
-                    >
-                      {{ suggestion.isNew ? '+ 创建: ' + suggestion.name : suggestion.name }}
-                    </li>
-                  </ul>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="form-group">
-            <label class="form-label">文章摘要</label>
+            <label class="form-label">摘要</label>
             <textarea
               v-model="form.summary"
               class="form-textarea"
               rows="3"
-              placeholder="请输入文章摘要（可选）"
+              placeholder="请输入文章摘要(可选)"
             ></textarea>
           </div>
 
           <div class="form-group">
-            <label class="form-label">文章内容 *</label>
+            <label class="form-label">内容 *</label>
             <div class="editor-toolbar">
-              <button type="button" class="toolbar-btn" @click="insertMarkdown('**', '**')" title="粗体">
+              <button type="button" class="toolbar-btn" @click="insertMarkdown('**', '**')" title="Bold">
                 <strong>B</strong>
               </button>
-              <button type="button" class="toolbar-btn" @click="insertMarkdown('*', '*')" title="斜体">
+              <button type="button" class="toolbar-btn" @click="insertMarkdown('*', '*')" title="Italic">
                 <em>I</em>
               </button>
-              <button type="button" class="toolbar-btn" @click="insertMarkdown('# ', '')" title="标题">
-                H
-              </button>
-              <button type="button" class="toolbar-btn" @click="insertMarkdown('## ', '')" title="二级标题">
-                H2
-              </button>
-              <button type="button" class="toolbar-btn" @click="insertMarkdown('`', '`')" title="代码">
-                &lt;/&gt;
-              </button>
-              <button type="button" class="toolbar-btn" @click="insertMarkdown('```\n', '\n```')" title="代码块">
-                Code
-              </button>
-              <button type="button" class="toolbar-btn" @click="insertMarkdown('- ', '')" title="列表">
-                •
-              </button>
-              <button type="button" class="toolbar-btn" @click="insertMarkdown('> ', '')" title="引用">
-                "
-              </button>
-              <button type="button" class="toolbar-btn" @click="insertMarkdown('[', '](url)')" title="链接">
-                链接
-              </button>
-              <label class="toolbar-btn image-upload-label" title="上传图片">
-                图片
+              <button type="button" class="toolbar-btn" @click="insertMarkdown('# ', '')" title="H1">H</button>
+              <button type="button" class="toolbar-btn" @click="insertMarkdown('## ', '')" title="H2">H2</button>
+              <button type="button" class="toolbar-btn" @click="insertMarkdown('`', '`')" title="Code">&lt;/&gt;</button>
+              <button type="button" class="toolbar-btn" @click="insertMarkdown('```\n', '\n```')" title="Code Block">Code</button>
+              <button type="button" class="toolbar-btn" @click="insertMarkdown('- ', '')" title="List">List</button>
+              <button type="button" class="toolbar-btn" @click="insertMarkdown('> ', '')" title="Quote">Quote</button>
+              <button type="button" class="toolbar-btn" @click="insertMarkdown('[', '](url)')" title="Link">Link</button>
+              <label class="toolbar-btn image-upload-label" title="Upload Image">
+                Image
                 <input
                   ref="imageInputRef"
                   type="file"
@@ -128,29 +103,30 @@
               v-model="form.content"
               class="form-textarea content-editor"
               rows="20"
-              placeholder="请输入文章内容，支持Markdown格式"
+              placeholder="使用 Markdown 格式编写文章内容"
               required
             ></textarea>
           </div>
         </div>
 
+        <div class="floating-bar" :class="{ visible: showFloatingBar }">
+          <button type="button" class="btn btn-secondary btn-sm" @click="saveDraft" :disabled="submitting">
+            保存草稿
+          </button>
+          <button type="submit" class="btn btn-primary btn-sm" :disabled="submitting">
+            {{ submitting ? '发布中...' : '发布' }}
+          </button>
+        </div>
+
         <div class="form-sidebar">
           <div class="sidebar-card">
             <h3 class="sidebar-title">发布设置</h3>
-            
-            <div class="form-group">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="form.isTop" />
-                <span>置顶文章</span>
-              </label>
-            </div>
-
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" @click="saveDraft" :disabled="submitting">
                 保存草稿
               </button>
               <button type="submit" class="btn btn-primary" :disabled="submitting">
-                {{ submitting ? '发布中...' : '发布文章' }}
+                {{ submitting ? '发布中...' : '发布' }}
               </button>
             </div>
           </div>
@@ -161,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBlogStore } from '@/store/blog'
 import { articleApi } from '@/api/article'
@@ -183,7 +159,15 @@ const submitting = ref(false)
 const tagInputText = ref('')
 const showTagSuggestions = ref(false)
 const tagSuggestionIndex = ref(0)
-// 保存文章自带标签的名称映射（避免依赖全局列表）
+const dropdownPos = ref({ top: 0, left: 0, width: 0 })
+const showFloatingBar = ref(false)
+
+const dropdownStyle = computed(() => ({
+  top: `${dropdownPos.value.top}px`,
+  left: `${dropdownPos.value.left}px`,
+  width: `${dropdownPos.value.width}px`,
+}))
+
 const articleTagNames = ref<Map<number, string>>(new Map())
 
 const form = reactive({
@@ -193,7 +177,6 @@ const form = reactive({
   categoryId: null as number | null,
   tagIds: [] as number[],
   status: 1,
-  isTop: false
 })
 
 const categories = computed(() => blogStore.categories)
@@ -204,26 +187,22 @@ const availableTags = computed(() => {
   return tagList.filter(t => !form.tagIds.includes(t.id))
 })
 
-// 过滤匹配的已有标签 + 新建建议
 const filteredTagSuggestions = computed(() => {
   const keyword = tagInputText.value.trim().toLowerCase()
   const result: Array<{ id: number; name: string; isNew: boolean }> = []
   const tagList = Array.isArray(allTags.value) ? allTags.value : []
 
   if (keyword) {
-    // 先显示匹配的已有标签（优先展示）
     const matched = tagList
       .filter(t => !form.tagIds.includes(t.id) && t.name.toLowerCase().includes(keyword))
       .slice(0, 5)
       .map(t => ({ ...t, isNew: false }))
     result.push(...matched)
 
-    // 再追加"创建新标签"选项（仅当输入内容与所有已有标签不完全匹配时）
     if (!tagList.some(t => t.name.toLowerCase() === keyword)) {
       result.push({ id: -1, name: keyword, isNew: true })
     }
   } else {
-    // 未输入时：显示可选的已有标签供选择
     const shown = tagList
       .filter(t => !form.tagIds.includes(t.id))
       .slice(0, 8)
@@ -239,8 +218,7 @@ onMounted(async () => {
     router.push('/login')
     return
   }
-  
-  // 检查发帖权限
+
   const userStr = localStorage.getItem('user')
   if (userStr) {
     const user = JSON.parse(userStr)
@@ -254,7 +232,17 @@ onMounted(async () => {
   await blogStore.fetchCategories()
   await blogStore.fetchTags()
   await loadArticle()
+
+  window.addEventListener('scroll', handleScroll, { passive: true })
 })
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+
+function handleScroll() {
+  showFloatingBar.value = window.scrollY > 200
+}
 
 async function loadArticle() {
   const id = parseInt(route.params.id as string)
@@ -262,7 +250,7 @@ async function loadArticle() {
     router.push('/profile')
     return
   }
-  
+
   loading.value = true
   try {
     const response = await articleApi.getById(id)
@@ -270,18 +258,17 @@ async function loadArticle() {
     form.title = article.title
     form.summary = article.summary || ''
     form.content = article.content
-    form.categoryId = article.categoryId
-    form.tagIds = article.tags?.map(t => t.id) || []
-    // 保存文章自带标签的名称，确保编辑时能正确显示
+    form.categoryId = article.categoryId ? Number(article.categoryId) : null
+    form.tagIds = article.tags?.map((t: any) => t.id) || []
+
     const nameMap = new Map<number, string>()
     article.tags?.forEach((t: any) => {
       if (t.id && t.name) nameMap.set(t.id, t.name)
     })
     articleTagNames.value = nameMap
     form.status = article.status
-    form.isTop = article.isTop
   } catch {
-    alert('文章不存在或无权编辑')
+    alert('文章不存在或无权访问')
     router.push('/profile')
   } finally {
     loading.value = false
@@ -290,7 +277,6 @@ async function loadArticle() {
 
 function getTagName(id: number): string {
   if (id < 0) return ''
-  // 优先从文章自带标签名称中查找，再从全局列表查找
   if (articleTagNames.value.has(id)) {
     return articleTagNames.value.get(id) || ''
   }
@@ -301,6 +287,25 @@ function getTagName(id: number): string {
 function onTagInput() {
   showTagSuggestions.value = true
   tagSuggestionIndex.value = 0
+  updateDropdownPosition()
+}
+
+function onTagFocus() {
+  showTagSuggestions.value = true
+  updateDropdownPosition()
+}
+
+function updateDropdownPosition() {
+  nextTick(() => {
+    const input = tagInputRef.value
+    if (!input) return
+    const rect = input.getBoundingClientRect()
+    dropdownPos.value = {
+      top: rect.bottom + window.scrollY + 4,
+      left: rect.left + window.scrollX,
+      width: rect.width
+    }
+  })
 }
 
 async function handleTagEnter() {
@@ -319,12 +324,12 @@ async function selectSuggestion(suggestion: { id: number; name: string; isNew: b
         .replace(/[^\w\u4e00-\u9fff-]/g, '')
         .replace(/^-+|-+$/g, '')
       const slug = rawSlug || ('tag-' + Date.now())
-      
+
       const res = await tagApi.create({ name: suggestion.name, slug })
       form.tagIds.push(res.data.id)
       await blogStore.fetchTags()
     } catch (e: any) {
-      const msg = e.response?.data?.message || e.message || '创建标签失败'
+      const msg = e.response?.data?.message || e.message || '标签创建失败'
       alert(msg)
     }
   } else {
@@ -344,27 +349,21 @@ function moveTagSuggestion(delta: number) {
   tagSuggestionIndex.value = (tagSuggestionIndex.value + delta + len) % len
 }
 
-function hideTagSuggestions() {
-  setTimeout(() => {
-    showTagSuggestions.value = false
-  }, 200)
-}
-
 function removeTag(id: number) {
   form.tagIds = form.tagIds.filter(t => t !== id)
 }
 
 function insertMarkdown(before: string, after: string) {
   if (!contentEditor.value) return
-  
+
   const textarea = contentEditor.value
   const start = textarea.selectionStart
   const end = textarea.selectionEnd
   const text = form.content
   const selected = text.substring(start, end)
-  
+
   form.content = text.substring(0, start) + before + selected + after + text.substring(end)
-  
+
   setTimeout(() => {
     textarea.focus()
     textarea.setSelectionRange(start + before.length, start + before.length + selected.length)
@@ -380,7 +379,7 @@ async function handleImageUpload(event: Event) {
   try {
     const res = await fileApi.uploadImage(file)
     const imageUrl = res.data
-    insertMarkdown(`![图片](${imageUrl})`, '')
+    insertMarkdown(`![image](${imageUrl})`, '')
   } catch (e: any) {
     alert(e.response?.data?.message || e.message || '图片上传失败')
   } finally {
@@ -394,7 +393,7 @@ async function handleSubmit() {
     alert('请填写文章标题和内容')
     return
   }
-  
+
   submitting.value = true
   try {
     const id = parseInt(route.params.id as string)
@@ -405,10 +404,9 @@ async function handleSubmit() {
       categoryId: form.categoryId || undefined,
       tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
       status: 1,
-      isTop: form.isTop
     })
-    
-    alert('文章发布成功！')
+
+    alert('发布成功!')
     router.push('/profile')
   } catch (e: any) {
     alert(e.response?.data?.message || '更新失败')
@@ -433,20 +431,15 @@ async function saveDraft() {
       categoryId: form.categoryId || undefined,
       tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
       status: 0,
-      isTop: form.isTop
     })
 
-    alert('草稿保存成功！')
+    alert('草稿保存成功!')
     router.push('/profile')
   } catch (e: any) {
     alert(e.response?.data?.message || '保存失败')
   } finally {
     submitting.value = false
   }
-}
-
-function goBack() {
-  router.back()
 }
 </script>
 
@@ -544,6 +537,19 @@ function goBack() {
   font-family: var(--font-sans);
   transition: all var(--transition-normal);
   background: var(--bg-card);
+  box-sizing: border-box;
+  color: var(--text-primary);
+}
+
+.form-select {
+  height: 40px;
+  appearance: auto;
+  -webkit-appearance: menulist;
+}
+
+.form-select option {
+  color: var(--text-primary);
+  background: var(--bg-card);
 }
 
 .form-input:focus,
@@ -609,27 +615,52 @@ function goBack() {
   line-height: 1.6;
 }
 
-.tags-input {
+.tags-field {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: 4px;
+  min-height: var(--spacing-lg);
 }
 
-.selected-tags {
+.selected-tags-inline {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-xs);
+  gap: 4px;
+  min-height: 24px;
 }
 
-.selected-tag {
+.selected-tag-inline {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: rgba(255, 107, 157, 0.1);
+  gap: 2px;
+  padding: 1px 8px;
+  background: rgba(255, 107, 157, 0.12);
   color: var(--primary-color);
-  border-radius: var(--border-radius-xs);
-  font-size: 0.85rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  line-height: 20px;
+}
+
+.tags-input-wrap {
+  position: relative;
+}
+
+.tag-input-field {
+  width: 100%;
+  height: 40px;
+  padding: 6px 10px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.9rem;
+  background: var(--bg-card);
+  transition: all var(--transition-normal);
+  box-sizing: border-box;
+}
+
+.tag-input-field:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.1);
 }
 
 .remove-tag {
@@ -641,103 +672,34 @@ function goBack() {
   line-height: 1;
 }
 
-.tag-input-wrapper {
-  position: relative;
-}
-
-.tag-input {
-  width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  font-size: 0.9rem;
+.floating-bar {
+  position: fixed;
+  bottom: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-xl);
   background: var(--bg-card);
-  transition: all var(--transition-normal);
+  border-radius: var(--border-radius);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
+  transition: bottom 0.3s ease;
 }
 
-.tag-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.1);
+.floating-bar.visible {
+  bottom: var(--spacing-lg);
 }
 
-.tag-suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  max-height: 180px;
-  overflow-y: auto;
-  margin-top: 4px;
-  padding: var(--spacing-xs) 0;
-  background: var(--bg-card);
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  box-shadow: var(--shadow-md);
-  list-style: none;
+.floating-bar .btn {
+  min-width: 120px;
+  padding: var(--spacing-sm) var(--spacing-xl);
+  font-size: 0.95rem;
 }
 
-.tag-suggestions li {
-  padding: var(--spacing-sm) var(--spacing-md);
-  cursor: pointer;
+.btn-sm {
   font-size: 0.9rem;
-  color: var(--text-primary);
-  transition: background 0.15s;
-}
-
-.tag-suggestions li:hover,
-.tag-suggestions li.active {
-  background: rgba(255, 107, 157, 0.08);
-  color: var(--primary-color);
-}
-
-/* 内联标签输入（用于 form-row 中的紧凑布局） */
-.tags-input-inline {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.selected-tags-inline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-height: 28px;
-}
-
-.selected-tag-inline {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 8px;
-  background: rgba(255, 107, 157, 0.1);
-  color: var(--primary-color);
-  border-radius: 12px;
-  font-size: 0.8rem;
-}
-
-.tag-input-inline {
-  width: 100%;
-  padding: 6px 10px;
-  font-size: 0.85rem;
-}
-
-.tag-suggestions-inline {
-  min-width: 200px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  cursor: pointer;
-}
-
-.checkbox-label input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary-color);
+  padding: var(--spacing-sm) var(--spacing-lg);
 }
 
 .form-actions {

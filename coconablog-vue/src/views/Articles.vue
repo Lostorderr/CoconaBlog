@@ -175,6 +175,7 @@ function syncUrl() {
 
 async function loadArticles() {
   await blogStore.fetchArticles({
+    status: 1,
     orderBy: currentSort.value,
     order: currentOrder.value,
     keyword: searchQuery.value || undefined

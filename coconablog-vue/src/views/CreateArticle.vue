@@ -4,6 +4,12 @@
       <div class="page-header">
         <h1 class="page-title">发布新文章</h1>
         <p class="page-subtitle">分享你的想法和知识</p>
+        <!-- 草稿加载提示 -->
+        <div v-if="loadedDraftId" class="draft-loaded-hint">
+          <span class="draft-icon">📝</span>
+          <span>已自动加载最近保存的草稿</span>
+          <button type="button" class="btn-clear-draft" @click="clearDraft">清除草稿</button>
+        </div>
       </div>
 
       <form class="article-form" @submit.prevent="handleSubmit">
@@ -129,16 +135,19 @@
           </div>
         </div>
 
+        <!-- 固定悬浮的发布按钮栏 -->
+        <div class="floating-bar" :class="{ visible: showFloatingBar }">
+          <button type="button" class="btn btn-secondary btn-sm" @click="saveDraft" :disabled="submitting">
+            保存草稿
+          </button>
+          <button type="submit" class="btn btn-primary btn-sm" :disabled="submitting">
+            {{ submitting ? '发布中...' : '发布文章' }}
+          </button>
+        </div>
+
         <div class="form-sidebar">
           <div class="sidebar-card">
             <h3 class="sidebar-title">发布设置</h3>
-            
-            <div class="form-group">
-              <label class="checkbox-label">
-                <input type="checkbox" v-model="form.isTop" />
-                <span>置顶文章</span>
-              </label>
-            </div>
 
             <div class="form-actions">
               <button type="button" class="btn btn-secondary" @click="saveDraft" :disabled="submitting">
@@ -167,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBlogStore } from '@/store/blog'
 import { articleApi } from '@/api/article'
@@ -187,6 +196,8 @@ const submitting = ref(false)
 const tagInputText = ref('')
 const showTagSuggestions = ref(false)
 const tagSuggestionIndex = ref(0)
+const showFloatingBar = ref(false)
+const loadedDraftId = ref<number | null>(null)
 
 const form = reactive({
   title: '',
@@ -195,7 +206,6 @@ const form = reactive({
   categoryId: null as number | null,
   tagIds: [] as number[],
   status: 1,
-  isTop: false
 })
 
 const categories = computed(() => Array.isArray(blogStore.categories) ? blogStore.categories : [])
@@ -255,10 +265,60 @@ onMounted(async () => {
       blogStore.fetchCategories(),
       blogStore.fetchTags()
     ])
+    // 加载最新草稿
+    await loadLatestDraft()
   } catch (e) {
     console.error('CreateArticle 初始化失败:', e)
   }
+
+  // 滚动时显示/隐藏悬浮发布按钮
+  window.addEventListener('scroll', handleScroll, { passive: true })
 })
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+})
+
+function handleScroll() {
+  showFloatingBar.value = window.scrollY > 200
+}
+
+async function loadLatestDraft() {
+  try {
+    const res = await articleApi.getMyArticles({ page: 1, pageSize: 1 })
+    const articles = res.data?.list || res.data || []
+    // 筛选草稿状态的文章，取最新的一篇
+    const draftArticles = Array.isArray(articles) ? (articles).filter((a: any) => a.status === 0) : []
+    if (draftArticles.length > 0) {
+      fillFormWithDraft(draftArticles[0])
+    }
+  } catch (e) {
+    console.error('加载草稿失败:', e)
+  }
+}
+
+function fillFormWithDraft(article: any) {
+  form.title = article.title || ''
+  form.summary = article.summary || ''
+  form.content = article.content || ''
+  form.categoryId = article.categoryId || null
+  form.status = article.status ?? 0
+  loadedDraftId.value = article.id
+  // 填充标签 ID
+  if (article.tags && Array.isArray(article.tags)) {
+    form.tagIds = (article.tags as any[]).map(t => t.id).filter(Boolean)
+  }
+}
+
+function clearDraft() {
+  form.title = ''
+  form.summary = ''
+  form.content = ''
+  form.categoryId = null
+  form.tagIds = []
+  form.status = 1
+  loadedDraftId.value = null
+}
 
 function getTagName(id: number): string {
   // 检查是否是临时标签（id为负数表示新建）
@@ -376,19 +436,39 @@ async function handleSubmit() {
       .replace(/^-+|-+$/g, '')
       || ('post-' + Date.now())
 
-    await articleApi.create({
-      title: form.title.trim(),
-      slug,
-      summary: form.summary.trim() || undefined,
-      content: form.content.trim(),
-      categoryId: form.categoryId || undefined,
-      tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
-      status: form.status,
-      isTop: form.isTop
-    })
-
-    alert(form.status === 1 ? '文章发布成功！' : '草稿保存成功！')
-    router.push('/articles')
+    if (loadedDraftId.value) {
+      // 已有草稿 → 更新
+      await articleApi.update(loadedDraftId.value, {
+        title: form.title.trim(),
+        slug,
+        summary: form.summary.trim() || undefined,
+        content: form.content.trim(),
+        categoryId: form.categoryId || undefined,
+        tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
+        status: form.status,
+      })
+      alert(form.status === 1 ? '文章发布成功！' : '草稿保存成功！')
+      // 发布成功后清除草稿引用
+      if (form.status === 1) {
+        loadedDraftId.value = null
+      }
+    } else {
+      // 新文章 → 创建
+      await articleApi.create({
+        title: form.title.trim(),
+        slug,
+        summary: form.summary.trim() || undefined,
+        content: form.content.trim(),
+        categoryId: form.categoryId || undefined,
+        tagIds: form.tagIds.length > 0 ? form.tagIds : undefined,
+        status: form.status,
+      })
+      alert(form.status === 1 ? '文章发布成功！' : '草稿保存成功！')
+    }
+    
+    if (form.status === 1) {
+      router.push('/articles')
+    }
   } catch (e: any) {
     alert(e.response?.data?.message || '操作失败')
   } finally {
@@ -423,6 +503,37 @@ async function saveDraft() {
 
 .page-subtitle {
   color: var(--text-secondary);
+}
+
+.draft-loaded-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(251, 191, 36, 0.08));
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: var(--border-radius);
+  font-size: 0.9rem;
+  color: #b8860b;
+}
+
+.draft-icon {
+  font-size: 1rem;
+}
+
+.btn-clear-draft {
+  background: none;
+  border: none;
+  color: #b8860b;
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  padding: 0 4px;
+}
+
+.btn-clear-draft:hover {
+  color: #d4a017;
 }
 
 .article-form {
@@ -650,8 +761,10 @@ async function saveDraft() {
 
 .tag-input-inline {
   width: 100%;
+  height: 40px;
   padding: 6px 10px;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  box-sizing: border-box;
 }
 
 .tag-suggestions-inline {
@@ -664,17 +777,35 @@ async function saveDraft() {
   color: var(--primary-color);
 }
 
-.checkbox-label {
+/* 固定悬浮发布按钮栏 */
+.floating-bar {
+  position: fixed;
+  bottom: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
   display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  cursor: pointer;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--bg-card);
+  border-radius: var(--border-radius);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
+  transition: bottom 0.3s ease;
 }
 
-.checkbox-label input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary-color);
+.floating-bar.visible {
+  bottom: var(--spacing-lg);
+}
+
+.floating-bar .btn {
+  min-width: 120px;
+  padding: var(--spacing-sm) var(--spacing-xl);
+  font-size: 0.95rem;
+}
+
+.btn-sm {
+  font-size: 0.9rem;
+  padding: var(--spacing-sm) var(--spacing-lg);
 }
 
 .form-actions {

@@ -182,8 +182,8 @@ function goToSlide(index: number) {
 
 onMounted(async () => {
   await Promise.all([
-    blogStore.fetchArticles({ pageSize: 3, orderBy: 'publish_time', order: 'desc' }),
-    articleApi.getList({ pageSize: 999 }).then(res => {
+    blogStore.fetchArticles({ status: 1, pageSize: 3, orderBy: 'publish_time', order: 'desc' }),
+    articleApi.getList({ status: 1, pageSize: 999 }).then(res => {
       allArticlesForStats.value = res.data.list
     }).catch(() => {}),
     blogStore.fetchTags()
