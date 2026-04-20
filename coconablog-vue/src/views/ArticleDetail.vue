@@ -47,7 +47,9 @@
               @click="handleLike"
               :disabled="likeLoading"
             >
-              <span class="action-icon">{{ isLiked ? '已赞' : '未赞' }}</span>
+              <svg class="heart-icon" viewBox="0 0 24 24" :class="{ filled: isLiked }">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
               <span>{{ article.likeCount }}</span>
             </button>
             <button class="action-btn share-btn" @click="handleShare">
@@ -106,7 +108,9 @@
                   <div class="comment-body">{{ comment.content }}</div>
                   <div class="comment-actions">
                     <button class="comment-action-btn" @click="handleCommentLike(comment)" :disabled="(comment as any)._likeLoading">
-                      <span>{{ comment.isLiked ? '已赞' : '未赞' }}</span>
+                      <svg class="comment-heart-icon" viewBox="0 0 24 24" :class="{ filled: comment.isLiked }">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                      </svg>
                       <span>{{ comment.likeCount }}</span>
                     </button>
                     <button class="comment-action-btn" @click="replyToComment(comment)">
@@ -157,21 +161,21 @@
           <div class="sidebar-section card">
             <h3 class="section-title">
               <span class="title-icon"></span>
-              <span>相关文章</span>
+              <span>推荐阅读</span>
             </h3>
             <div class="related-articles">
               <div
-                v-for="related in relatedArticles"
+                v-for="related in randomArticles"
                 :key="related.id"
                 class="related-item"
                 @click="navigateToArticle(related.id)"
               >
-                <div class="related-cover">
-                  <img :src="related.coverImage || defaultCover" :alt="related.title" />
-                </div>
                 <div class="related-info">
                   <h4 class="related-title">{{ related.title }}</h4>
-                  <div class="related-date">{{ formatDate(related.createTime) }}</div>
+                  <div class="related-meta">
+                    <span>{{ related.viewCount }} 次浏览</span>
+                    <span>{{ related.likeCount }} 次点赞</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -201,15 +205,31 @@
         </div>
       </div>
     </div>
+
+    <!-- Lightbox 图片放大 -->
+    <Teleport to="body">
+      <Transition name="lightbox-fade">
+        <div
+          v-if="lightboxVisible"
+          class="lightbox-overlay"
+          @click.self="closeLightbox"
+          @keydown.esc="closeLightbox"
+        >
+          <button class="lightbox-close" @click="closeLightbox" title="关闭">&times;</button>
+          <img :src="lightboxSrc" alt="" class="lightbox-image" />
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUpdated, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBlogStore, type ArticleDetail, type CommentInfo } from '@/store/blog'
 import { useAuth, useLikes } from '@/composables/useApi'
 import { likeApi } from '@/api/like'
+import { articleApi } from '@/api/article'
 import { renderMarkdown, type TocItem } from '@/utils/markdown'
 import 'highlight.js/styles/github.css'
 
@@ -227,7 +247,59 @@ const comments = ref<CommentInfo[]>([])
 const newComment = ref('')
 const replyTarget = ref<CommentInfo | null>(null)
 const tocItems = ref<TocItem[]>([])
-const defaultCover = ''
+
+// Lightbox 图片放大
+const lightboxVisible = ref(false)
+const lightboxSrc = ref('')
+
+function openLightbox(src: string) {
+  lightboxSrc.value = src
+  lightboxVisible.value = true
+  document.body.style.overflow = 'hidden'
+}
+
+function closeLightbox() {
+  lightboxVisible.value = false
+  document.body.style.overflow = ''
+}
+
+function bindImageLightbox() {
+  nextTick(() => {
+    const container = document.querySelector('.markdown-body')
+    if (!container) return
+    container.querySelectorAll<HTMLElement>('.img-lightbox-trigger').forEach(el => {
+      el.removeEventListener('click', imageClickHandler)
+      el.addEventListener('click', imageClickHandler)
+
+      const img = el.querySelector('img')
+      if (img && !img.complete) {
+        img.addEventListener('load', () => checkImageSize(img), { once: true })
+      } else if (img) {
+        checkImageSize(img)
+      }
+    })
+  })
+}
+
+function checkImageSize(img: HTMLImageElement) {
+  const thresholdW = window.innerWidth / 3
+  const thresholdH = window.innerHeight / 3
+  const naturalW = img.naturalWidth || img.width
+  const naturalH = img.naturalHeight || img.height
+  if (naturalW > thresholdW || naturalH > thresholdH) {
+    img.classList.add('img-thumbnail')
+  } else {
+    img.classList.remove('img-thumbnail')
+  }
+}
+
+function imageClickHandler(e: Event) {
+  const target = (e.currentTarget as HTMLElement)
+  const img = target.querySelector('img[data-full-src]')
+  if (img) {
+    openLightbox(img.getAttribute('data-full-src') || '')
+  }
+}
 
 const renderedContent = computed(() => {
   if (!article.value) return ''
@@ -236,18 +308,45 @@ const renderedContent = computed(() => {
   return html
 })
 
-const relatedArticles = computed(() => {
-  if (!article.value) return []
-  return blogStore.articles
-    .filter(a => 
-      a.id !== article.value?.id && 
-      (a.categoryId === article.value?.categoryId)
-    )
-    .slice(0, 3)
-})
+const randomArticles = ref<any[]>([])
+
+async function fetchRandomArticles() {
+  try {
+    const res = await articleApi.getList({ pageSize: 10 })
+    const list = res.data.list.filter((a: any) => a.id !== article.value?.id)
+    // Fisher-Yates shuffle
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]]
+    }
+    randomArticles.value = list.slice(0, 3)
+  } catch {
+    randomArticles.value = []
+  }
+}
 
 onMounted(async () => {
   await loadArticle()
+  bindImageLightbox()
+  window.addEventListener('resize', onResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', onResize)
+})
+
+let resizeTimer: ReturnType<typeof setTimeout> | null = null
+function onResize() {
+  if (resizeTimer) clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(() => {
+    const container = document.querySelector('.markdown-body')
+    if (!container) return
+    container.querySelectorAll<HTMLImageElement>('.markdown-image').forEach(checkImageSize)
+  }, 200)
+}
+
+onUpdated(() => {
+  bindImageLightbox()
 })
 
 watch(() => route.params.id, () => {
@@ -267,8 +366,13 @@ async function loadArticle() {
     article.value = await blogStore.fetchArticleById(id)
     if (article.value) {
       blogStore.viewArticle(id)
+      // 本地立即更新浏览量，避免等待后端响应
+      if (article.value.viewCount !== undefined) {
+        article.value.viewCount++
+      }
       await loadComments(id)
       isLiked.value = await blogStore.checkArticleLiked(id)
+      fetchRandomArticles()
     }
   } catch {
     article.value = null
@@ -315,7 +419,12 @@ function formatDate(date: string): string {
 
 async function handleLike() {
   if (!article.value || likeLoading.value) return
-  
+
+  if (!isLoggedIn.value) {
+    router.push('/login?redirect=' + encodeURIComponent(route.fullPath))
+    return
+  }
+
   likeLoading.value = true
   try {
     if (isLiked.value) {
@@ -328,7 +437,16 @@ async function handleLike() {
       isLiked.value = true
     }
   } catch (e: any) {
-    alert(e.response?.data?.message || '操作失败')
+    const msg = e.response?.data?.message || e.message || '操作失败'
+    // 回滚本地状态
+    if (isLiked.value) {
+      article.value.likeCount--
+      isLiked.value = false
+    } else {
+      article.value.likeCount++
+      isLiked.value = true
+    }
+    alert(msg)
   } finally {
     likeLoading.value = false
   }
@@ -422,14 +540,18 @@ function navigateToArticle(id: number) {
 }
 
 .article-container {
+  padding: 0 var(--spacing-2xl);
   padding-bottom: var(--spacing-2xl);
 }
 
 .article-header {
   background: var(--gradient-primary);
   color: white;
-  padding: var(--spacing-2xl) var(--spacing-lg);
+  padding: var(--spacing-2xl) 0;
   padding-bottom: var(--spacing-xl);
+  margin: 0 calc(-1 * var(--spacing-2xl));
+  padding-left: var(--spacing-2xl);
+  padding-right: var(--spacing-2xl);
 }
 
 .article-meta {
@@ -518,15 +640,19 @@ function navigateToArticle(id: number) {
 
 .content-layout {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: minmax(0, 1fr) 260px;
   gap: var(--spacing-xl);
   margin-top: var(--spacing-xl);
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .article-content {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .content-wrapper {
@@ -534,6 +660,7 @@ function navigateToArticle(id: number) {
   padding: var(--spacing-xl);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-sm);
+  overflow-x: hidden;
 }
 
 .markdown-body {
@@ -661,13 +788,35 @@ function navigateToArticle(id: number) {
 }
 
 .like-btn.liked {
-  background: var(--gradient-primary);
-  border-color: transparent;
-  color: white;
+  background: #fff0f1;
+  border-color: var(--primary-color);
+  color: #e74c3c;
+}
+
+.like-btn.liked .heart-icon {
+  fill: #e74c3c;
 }
 
 .action-icon {
   font-size: 1.3rem;
+}
+
+.heart-icon {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-width: 2;
+  transition: all 0.3s ease;
+}
+
+.like-btn:hover .heart-icon {
+  stroke: #e74c3c;
+}
+
+.heart-icon.filled {
+  fill: #e74c3c;
+  stroke: #e74c3c;
 }
 
 .comments-section {
@@ -859,6 +1008,20 @@ function navigateToArticle(id: number) {
   color: var(--primary-color);
 }
 
+.comment-heart-icon {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  transition: all 0.3s ease;
+}
+
+.comment-heart-icon.filled {
+  fill: #e74c3c;
+  stroke: #e74c3c;
+}
+
 .no-comments {
   text-align: center;
   padding: var(--spacing-2xl);
@@ -898,6 +1061,8 @@ function navigateToArticle(id: number) {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sidebar-section {
@@ -954,8 +1119,7 @@ function navigateToArticle(id: number) {
 
 .related-item {
   display: flex;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
+  padding: var(--spacing-md);
   background: var(--bg-hover);
   border-radius: var(--border-radius-sm);
   cursor: pointer;
@@ -966,20 +1130,6 @@ function navigateToArticle(id: number) {
   background: var(--primary-color);
   color: white;
   transform: translateX(4px);
-}
-
-.related-cover {
-  width: 80px;
-  height: 60px;
-  border-radius: var(--border-radius-sm);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.related-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .related-info {
@@ -1000,6 +1150,13 @@ function navigateToArticle(id: number) {
 .related-date {
   font-size: 0.8rem;
   opacity: 0.7;
+}
+
+.related-meta {
+  display: flex;
+  gap: var(--spacing-sm);
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .loading-state {
@@ -1066,6 +1223,88 @@ function navigateToArticle(id: number) {
   margin-bottom: var(--spacing-xl);
 }
 
+/* 图片缩略图 + 点击放大 - :deep 穿透 scoped 作用于 v-html 内容 */
+:deep(.img-lightbox-trigger) {
+  display: inline-block;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+:deep(.markdown-image) {
+  width: auto;
+  height: auto;
+  border-radius: var(--border-radius-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: block;
+  max-width: 100%;
+}
+
+:deep(.markdown-image.img-thumbnail) {
+  max-height: 33.33vh;
+  max-width: calc(100% - var(--spacing-xl) * 2);
+}
+
+:deep(.img-lightbox-trigger:hover .markdown-image) {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: scale(1.01);
+}
+
+/* Lightbox 放大层 */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+
+.lightbox-image {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 4px;
+  cursor: default;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  z-index: 10001;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Lightbox 过渡动画 */
+.lightbox-fade-enter-active,
+.lightbox-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.lightbox-fade-enter-from,
+.lightbox-fade-leave-to {
+  opacity: 0;
+}
+
 @media (max-width: 1024px) {
   .content-layout {
     grid-template-columns: 1fr;
@@ -1100,6 +1339,15 @@ function navigateToArticle(id: number) {
 
   .comments-section {
     padding: var(--spacing-lg);
+  }
+
+  :deep(.markdown-image.img-thumbnail) {
+    max-height: 33.33vh;
+  }
+
+  .lightbox-image {
+    max-width: 95vw;
+    max-height: 85vh;
   }
 }
 </style>

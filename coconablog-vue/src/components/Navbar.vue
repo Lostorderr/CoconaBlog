@@ -53,7 +53,7 @@
             <router-link to="/profile" class="dropdown-item" @click="closeUserMenu">
               <span>👤 个人中心</span>
             </router-link>
-            <router-link to="/create-article" class="dropdown-item" @click="closeUserMenu">
+            <router-link v-if="canPost" to="/create-article" class="dropdown-item" @click="closeUserMenu">
               <span>✏️ 发布文章</span>
             </router-link>
             <router-link v-if="isAdmin" to="/admin" class="dropdown-item admin" @click="closeUserMenu">
@@ -63,56 +63,6 @@
             <button class="dropdown-item" @click="handleLogout">
               <span>🚪 退出登录</span>
             </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="menu-dropdown" :class="{ active: isMenuOpen }">
-      <div class="container">
-        <div class="menu-dropdown-content">
-          <div class="menu-section">
-            <h4 class="menu-section-title">导航</h4>
-            <router-link 
-              v-for="item in menuItems" 
-              :key="item.path" 
-              :to="item.path" 
-              class="menu-dropdown-item"
-              @click="closeMenu"
-            >
-              <span class="menu-item-icon">{{ item.icon }}</span>
-              <span>{{ item.name }}</span>
-            </router-link>
-          </div>
-          <div class="menu-section">
-            <h4 class="menu-section-title">分类</h4>
-            <div v-if="categories.length > 0" class="menu-categories">
-              <router-link 
-                v-for="cat in categories" 
-                :key="cat.id" 
-                :to="`/articles?category=${cat.id}`"
-                class="menu-category-tag"
-                @click="closeMenu"
-              >
-                {{ cat.name }}
-              </router-link>
-            </div>
-            <div v-else class="menu-empty">暂无分类</div>
-          </div>
-          <div class="menu-section">
-            <h4 class="menu-section-title">热门标签</h4>
-            <div v-if="tags.length > 0" class="menu-tags">
-              <router-link 
-                v-for="tag in tags" 
-                :key="tag.id" 
-                :to="`/articles?tag=${tag.id}`"
-                class="menu-tag"
-                @click="closeMenu"
-              >
-                #{{ tag.name }}
-              </router-link>
-            </div>
-            <div v-else class="menu-empty">暂无标签</div>
           </div>
         </div>
       </div>
@@ -135,6 +85,58 @@
       </div>
     </transition>
   </nav>
+
+  <Teleport to="body">
+  <div class="menu-dropdown" :class="{ active: isMenuOpen }">
+    <div class="container">
+      <div class="menu-dropdown-content">
+        <div class="menu-section">
+          <h4 class="menu-section-title">导航</h4>
+          <router-link
+            v-for="item in menuItems"
+            :key="item.path"
+            :to="item.path"
+            class="menu-dropdown-item"
+            @click="closeMenu"
+          >
+            <span class="menu-item-icon">{{ item.icon }}</span>
+            <span>{{ item.name }}</span>
+          </router-link>
+        </div>
+        <div class="menu-section">
+          <h4 class="menu-section-title">分类</h4>
+          <div v-if="categories.length > 0" class="menu-categories">
+            <router-link
+              v-for="cat in categories"
+              :key="cat.id"
+              :to="`/articles?category=${cat.id}`"
+              class="menu-category-tag"
+              @click="closeMenu"
+            >
+              {{ cat.name }}
+            </router-link>
+          </div>
+          <div v-else class="menu-empty">暂无分类</div>
+        </div>
+        <div class="menu-section">
+          <h4 class="menu-section-title">热门标签</h4>
+          <div v-if="tags.length > 0" class="menu-tags">
+            <router-link
+              v-for="tag in tags"
+              :key="tag.id"
+              :to="`/articles?tag=${tag.id}`"
+              class="menu-tag"
+              @click="closeMenu"
+            >
+              #{{ tag.name }}
+            </router-link>
+          </div>
+          <div v-else class="menu-empty">暂无标签</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -155,6 +157,7 @@ const searchQuery = ref('')
 const isUserMenuOpen = ref(false)
 
 const isAdmin = computed(() => user.value?.role === 1)
+const canPost = computed(() => (user.value?.role ?? 0) >= 1)
 
 const menuItems = [
   { name: '首页', path: '/', icon: '' },
@@ -213,12 +216,11 @@ async function handleLogout() {
 .navbar {
   position: sticky;
   top: 0;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
   z-index: 1000;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .navbar-container {
@@ -524,15 +526,26 @@ async function handleLogout() {
 }
 
 .menu-dropdown {
-  max-height: 0;
-  overflow: hidden;
-  background: var(--bg-card);
-  border-bottom: 2px solid var(--border-color);
-  transition: max-height var(--transition-normal);
+  position: fixed;
+  top: 70px;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-10px);
+  transition: all var(--transition-normal), visibility 0s linear 0.3s;
+  z-index: 999;
 }
 
 .menu-dropdown.active {
-  max-height: 500px;
+  visibility: visible;
+  pointer-events: all;
+  transform: translateY(0);
+  transition: all var(--transition-normal), visibility 0s linear 0s;
 }
 
 .menu-dropdown-content {
@@ -540,6 +553,7 @@ async function handleLogout() {
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-xl);
   padding: var(--spacing-xl) 0;
+  background: transparent;
 }
 
 .menu-section {
@@ -570,7 +584,7 @@ async function handleLogout() {
 }
 
 .menu-dropdown-item:hover {
-  background: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.3);
   color: var(--primary-color);
 }
 
@@ -587,7 +601,7 @@ async function handleLogout() {
 
 .menu-category-tag {
   padding: var(--spacing-xs) var(--spacing-md);
-  background: var(--bg-hover);
+  background: rgba(255, 255, 255, 0.25);
   color: var(--text-secondary);
   text-decoration: none;
   border-radius: 20px;
@@ -602,7 +616,7 @@ async function handleLogout() {
 
 .menu-tag {
   padding: var(--spacing-xs) var(--spacing-sm);
-  background: rgba(255, 107, 157, 0.1);
+  background: rgba(255, 255, 255, 0.2);
   color: var(--primary-color);
   text-decoration: none;
   border-radius: var(--border-radius-xs);

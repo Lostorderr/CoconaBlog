@@ -21,7 +21,7 @@
           :key="i"
           class="indicator-dot"
           :class="{ active: i === currentBgIndex }"
-          @click="currentBgIndex = i"
+          @click="goToSlide(i)"
         ></button>
       </div>
 
@@ -119,27 +119,22 @@
     </section>
 
     <section class="stats-section container">
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-emoji">📚</div>
-          <div class="stat-value">{{ blogStore.totalArticles }}</div>
-          <div class="stat-label">篇文章</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-emoji">👀</div>
-          <div class="stat-value">{{ formatNumber(blogStore.totalViews) }}</div>
-          <div class="stat-label">次浏览</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-emoji">❤️</div>
-          <div class="stat-value">{{ formatNumber(blogStore.totalLikes) }}</div>
-          <div class="stat-label">个点赞</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-emoji">🏷️</div>
-          <div class="stat-value">{{ blogStore.allTags.length }}</div>
-          <div class="stat-label">个标签</div>
-        </div>
+      <div class="stats-row">
+        <span class="stat-item">
+          <span class="stat-emoji">📚</span>
+          <span class="stat-value">{{ statTotalArticles }}</span>
+          <span class="stat-label">篇文章</span>
+        </span>
+        <span class="stat-divider"></span>
+        <span class="stat-item">
+          <span class="stat-value">{{ formatNumber(statTotalViews) }}</span>
+          <span class="stat-label">次浏览</span>
+        </span>
+        <span class="stat-divider"></span>
+        <span class="stat-item">
+          <span class="stat-value">{{ formatNumber(statTotalLikes) }}</span>
+          <span class="stat-label">个点赞</span>
+        </span>
       </div>
     </section>
   </div>
@@ -149,8 +144,19 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useBlogStore } from '@/store/blog'
 import ArticleCard from '@/components/ArticleCard.vue'
+import { articleApi } from '@/api/article'
+import type { Article } from '@/api/types'
 
 const blogStore = useBlogStore()
+const allArticlesForStats = ref<Article[]>([])
+
+const statTotalArticles = computed(() => blogStore.pagination.total)
+const statTotalViews = computed(() => 
+  allArticlesForStats.value.reduce((sum, a) => sum + (a.viewCount || 0), 0)
+)
+const statTotalLikes = computed(() => 
+  allArticlesForStats.value.reduce((sum, a) => sum + (a.likeCount || 0), 0)
+)
 
 // 背景图片轮播（public 目录，运行时路径）
 const bgImages = [
@@ -167,9 +173,21 @@ function startBgCarousel() {
   }, 5000)
 }
 
+function goToSlide(index: number) {
+  currentBgIndex.value = index
+  // 重置定时器，从新图片重新开始计时
+  if (bgTimer) clearInterval(bgTimer)
+  startBgCarousel()
+}
+
 onMounted(async () => {
-  await blogStore.fetchArticles({ pageSize: 3 })
-  await blogStore.fetchTags()
+  await Promise.all([
+    blogStore.fetchArticles({ pageSize: 3, orderBy: 'publish_time', order: 'desc' }),
+    articleApi.getList({ pageSize: 999 }).then(res => {
+      allArticlesForStats.value = res.data.list
+    }).catch(() => {}),
+    blogStore.fetchTags()
+  ])
   startBgCarousel()
 })
 
@@ -516,44 +534,45 @@ function formatNumber(num: number): string {
 }
 
 .stats-section {
-  padding: var(--spacing-2xl) var(--spacing-lg);
+  padding: var(--spacing-xl) var(--spacing-lg);
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--spacing-lg);
+.stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
-.stat-card {
-  text-align: center;
-  padding: var(--spacing-xl);
-  background: var(--gradient-primary);
-  border-radius: var(--border-radius);
-  color: white;
-  box-shadow: var(--shadow-md);
-  transition: all var(--transition-normal);
+.stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
-.stat-card:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--shadow-hover);
-}
-
-.stat-emoji {
-  font-size: 2rem;
-  margin-bottom: var(--spacing-sm);
-}
-
-.stat-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: var(--spacing-xs);
-}
-
-.stat-label {
+.stat-item .stat-emoji {
   font-size: 1rem;
-  opacity: 0.9;
+  margin-bottom: 0;
+}
+
+.stat-item .stat-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0;
+}
+
+.stat-item .stat-label {
+  font-size: 0.85rem;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-color);
 }
 
 @media (max-width: 768px) {
@@ -606,8 +625,16 @@ function formatNumber(num: number): string {
     grid-template-columns: 1fr;
   }
 
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .stats-row {
+    gap: var(--spacing-sm);
+  }
+
+  .stat-divider {
+    display: none;
+  }
+
+  .stat-item {
+    font-size: 0.8rem;
   }
 }
 </style>

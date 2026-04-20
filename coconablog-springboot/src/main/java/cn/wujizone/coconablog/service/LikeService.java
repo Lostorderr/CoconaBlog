@@ -6,9 +6,11 @@ import cn.wujizone.coconablog.mapper.ArticleMapper;
 import cn.wujizone.coconablog.mapper.CommentMapper;
 import cn.wujizone.coconablog.mapper.LikeMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LikeService {
@@ -28,6 +30,7 @@ public class LikeService {
     public void like(Long userId, Long targetId, Integer targetType) {
         Like existingLike = likeMapper.findByUserAndTarget(userId, targetId, targetType);
         if (existingLike != null) {
+            log.error("点赞失败, 已经点赞过了, userId={}, targetId={}, targetType={}", userId, targetId, targetType);
             throw new RuntimeException("已经点赞过了");
         }
         
@@ -48,6 +51,7 @@ public class LikeService {
     public void unlike(Long userId, Long targetId, Integer targetType) {
         int deleted = likeMapper.delete(userId, targetId, targetType);
         if (deleted == 0) {
+            log.error("取消点赞失败, 未点赞, userId={}, targetId={}, targetType={}", userId, targetId, targetType);
             throw new RuntimeException("未点赞");
         }
         

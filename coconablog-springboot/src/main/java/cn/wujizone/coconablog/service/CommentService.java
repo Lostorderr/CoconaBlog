@@ -8,12 +8,14 @@ import cn.wujizone.coconablog.entity.Comment;
 import cn.wujizone.coconablog.mapper.ArticleMapper;
 import cn.wujizone.coconablog.mapper.CommentMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommentService {
@@ -95,9 +97,11 @@ public class CommentService {
     public void deleteComment(Long id, Long userId) {
         Comment comment = commentMapper.findById(id);
         if (comment == null) {
+            log.error("删除评论失败, 评论不存在, id={}", id);
             throw new RuntimeException("评论不存在");
         }
         if (!comment.getUserId().equals(userId)) {
+            log.error("删除评论失败, 无权删除此评论, id={}, userId={}", id, userId);
             throw new RuntimeException("无权删除此评论");
         }
         commentMapper.deleteById(id);
@@ -108,6 +112,7 @@ public class CommentService {
     public void updateCommentStatus(Long id, Integer status) {
         Comment comment = commentMapper.findById(id);
         if (comment == null) {
+            log.error("更新评论状态失败, 评论不存在, id={}", id);
             throw new RuntimeException("评论不存在");
         }
         commentMapper.updateStatus(id, status);
@@ -145,7 +150,8 @@ public class CommentService {
                         articleInfo.setTitle(article.getTitle());
                         vo.setArticle(articleInfo);
                     }
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    log.error("获取评论关联文章信息失败, articleId={}", comment.getArticleId(), e);
                 }
             }
         }

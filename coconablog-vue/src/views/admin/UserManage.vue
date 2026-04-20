@@ -41,8 +41,8 @@
             </td>
             <td>{{ user.email }}</td>
             <td>
-              <span class="role-badge" :class="user.role === 1 ? 'admin' : 'user'">
-                {{ user.role === 1 ? '管理员' : '普通用户' }}
+              <span class="role-badge" :class="getRoleClass(user.role)">
+                {{ getRoleName(user.role) }}
               </span>
             </td>
             <td>
@@ -53,22 +53,18 @@
             <td>{{ formatDate(user.createTime) }}</td>
             <td>
               <div class="action-buttons">
-                <button
-                  v-if="user.role !== 1"
-                  class="action-btn toggle-role"
-                  @click="handleToggleRole(user)"
+                <select
+                  v-if="user.id !== currentUserId"
+                  class="role-select"
+                  :value="user.role"
+                  @change="handleChangeRole(user, Number(($event.target as HTMLSelectElement).value))"
                   :disabled="operating"
                 >
-                  设为管理员
-                </button>
-                <button
-                  v-if="user.role === 1 && user.id !== currentUserId"
-                  class="action-btn toggle-role"
-                  @click="handleToggleRole(user)"
-                  :disabled="operating"
-                >
-                  设为普通用户
-                </button>
+                  <option :value="0">设为普通用户</option>
+                  <option :value="2">设为授权用户</option>
+                  <option :value="1">设为管理员</option>
+                </select>
+                <span v-else class="self-badge">当前账号</span>
                 <button
                   v-if="user.status === 0 && user.id !== currentUserId"
                   class="action-btn disable-btn"
@@ -135,16 +131,27 @@ function formatDate(date: string): string {
   return new Date(date).toLocaleDateString('zh-CN')
 }
 
-async function handleToggleRole(user: UserInfo) {
-  const newRole = user.role === 1 ? 0 : 1
-  const action = newRole === 1 ? '设为管理员' : '设为普通用户'
+function getRoleName(role: number | undefined): string {
+  if (role === 1) return '管理员'
+  if (role === 2) return '授权用户'
+  return '普通用户'
+}
+
+function getRoleClass(role: number | undefined): string {
+  if (role === 1) return 'admin'
+  if (role === 2) return 'author'
+  return 'user'
+}
+
+async function handleChangeRole(user: UserInfo, newRole: number) {
+  const action = getRoleName(newRole)
   if (!confirm(`确定要将用户 "${user.username}" ${action}吗？`)) return
 
   operating.value = true
   try {
     await authApi.updateUserRole(user.id, newRole)
     user.role = newRole
-    alert(`${action}成功`)
+    alert(`已${action}`)
   } catch (e: any) {
     alert(e.response?.data?.message || '操作失败')
   } finally {
@@ -311,6 +318,11 @@ async function handleDeleteUser(user: UserInfo) {
   color: #3b82f6;
 }
 
+.role-badge.author {
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+}
+
 .status-badge {
   padding: 2px 10px;
   border-radius: 12px;
@@ -373,6 +385,29 @@ async function handleDeleteUser(user: UserInfo) {
   border-color: #ef4444;
   color: #ef4444;
   background: rgba(239, 68, 68, 0.05);
+}
+
+.role-select {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-xs);
+  font-size: 0.8rem;
+  cursor: pointer;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  transition: all var(--transition-normal);
+}
+
+.role-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.self-badge {
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 @media (max-width: 768px) {

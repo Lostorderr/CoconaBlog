@@ -6,14 +6,18 @@ import cn.wujizone.coconablog.entity.Article;
 import cn.wujizone.coconablog.entity.ArticleTag;
 import cn.wujizone.coconablog.entity.Tag;
 import cn.wujizone.coconablog.mapper.*;
+import cn.wujizone.coconablog.entity.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ArticleService {
@@ -28,12 +32,17 @@ public class ArticleService {
     private final TagService tagService;
     
     public PageResult<ArticleVO> getArticleList(Integer page, Integer pageSize, Long categoryId,
-                                                  Long tagId, Integer status, String keyword) {
+                                                  Long tagId, Integer status, String keyword,
+                                                  String orderBy, String order) {
         if (page == null || page < 1) page = 1;
         if (pageSize == null || pageSize < 1) pageSize = 10;
-        
+
+        Set<String> allowedOrderBy = Set.of("publish_time", "view_count", "like_count", "comment_count", "create_time", "update_time");
+        if (!allowedOrderBy.contains(orderBy)) orderBy = "publish_time";
+        if (!"asc".equalsIgnoreCase(order)) order = "desc";
+
         int offset = (page - 1) * pageSize;
-        List<Article> articles = articleMapper.findByCondition(categoryId, tagId, keyword, status, null, offset, pageSize);
+        List<Article> articles = articleMapper.findByCondition(categoryId, tagId, keyword, status, null, offset, pageSize, orderBy + " " + order);
         Long total = articleMapper.countByCondition(categoryId, tagId, keyword, status, null);
         
         List<ArticleVO> voList = articles.stream()
@@ -48,7 +57,7 @@ public class ArticleService {
         if (pageSize == null || pageSize < 1) pageSize = 10;
         
         int offset = (page - 1) * pageSize;
-        List<Article> articles = articleMapper.findByCondition(null, null, null, null, userId, offset, pageSize);
+        List<Article> articles = articleMapper.findByCondition(null, null, null, null, userId, offset, pageSize, "create_time desc");
         Long total = articleMapper.countByCondition(null, null, null, null, userId);
         
         List<ArticleVO> voList = articles.stream()
@@ -61,6 +70,7 @@ public class ArticleService {
     public ArticleVO getArticleById(Long id) {
         Article article = articleMapper.findById(id);
         if (article == null) {
+            log.error("文章不存在, id={}", id);
             throw new RuntimeException("文章不存在");
         }
         return toArticleVODetail(article);
@@ -69,6 +79,7 @@ public class ArticleService {
     public ArticleVO getArticleBySlug(String slug) {
         Article article = articleMapper.findBySlug(slug);
         if (article == null) {
+            log.error("文章不存在, slug={}", slug);
             throw new RuntimeException("文章不存在");
         }
         return toArticleVODetail(article);
@@ -76,7 +87,15 @@ public class ArticleService {
     
     @Transactional
     public ArticleVO createArticle(Long userId, ArticleRequest request) {
+        // 权限检查：role=0 普通用户不能发帖，需要 role>=1 (管理员或授权用户)
+        User author = userMapper.findById(userId);
+        if (author == null || (author.getRole() != null && author.getRole() == 0)) {
+            log.error("创建文章失败, 无发帖权限, userId={}", userId);
+            throw new RuntimeException("您暂无发帖权限，请联系管理员申请授权");
+        }
+
         if (request.getSlug() != null && articleMapper.findBySlug(request.getSlug()) != null) {
+            log.error("创建文章失败, slug已存在, slug={}", request.getSlug());
             throw new RuntimeException("slug已存在");
         }
         
@@ -119,15 +138,18 @@ public class ArticleService {
     public ArticleVO updateArticle(Long id, Long userId, ArticleRequest request) {
         Article article = articleMapper.findById(id);
         if (article == null) {
+            log.error("更新文章失败, 文章不存在, id={}", id);
             throw new RuntimeException("文章不存在");
         }
         if (!article.getUserId().equals(userId)) {
+            log.error("更新文章失败, 无权修改此文章, id={}, userId={}", id, userId);
             throw new RuntimeException("无权修改此文章");
         }
         
         if (request.getTitle() != null) article.setTitle(request.getTitle());
         if (request.getSlug() != null && !request.getSlug().equals(article.getSlug())) {
             if (articleMapper.findBySlug(request.getSlug()) != null) {
+                log.error("更新文章失败, slug已存在, slug={}", request.getSlug());
                 throw new RuntimeException("slug已存在");
             }
             article.setSlug(request.getSlug());
@@ -168,9 +190,11 @@ public class ArticleService {
     public void softDeleteArticle(Long id, Long userId) {
         Article article = articleMapper.findById(id);
         if (article == null) {
+            log.error("删除文章失败, 文章不存在, id={}", id);
             throw new RuntimeException("文章不存在");
         }
         if (!article.getUserId().equals(userId)) {
+            log.error("删除文章失败, 无权删除此文章, id={}, userId={}", id, userId);
             throw new RuntimeException("无权删除此文章");
         }
         articleMapper.updateStatus(id, 2);

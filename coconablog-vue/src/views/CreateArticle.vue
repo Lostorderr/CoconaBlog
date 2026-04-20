@@ -21,15 +21,6 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">URL标识</label>
-              <input
-                v-model="form.slug"
-                type="text"
-                class="form-input"
-                placeholder="自动生成或手动输入"
-              />
-            </div>
-            <div class="form-group">
               <label class="form-label">分类</label>
               <select v-model="form.categoryId" class="form-select">
                 <option :value="null">选择分类</option>
@@ -37,6 +28,42 @@
                   {{ cat.name }}
                 </option>
               </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">标签</label>
+              <div class="tags-input-inline">
+                <div class="selected-tags-inline">
+                  <span v-for="tagId in form.tagIds" :key="tagId" class="selected-tag-inline">
+                    {{ getTagName(tagId) }}
+                    <button type="button" class="remove-tag" @click="removeTag(tagId)">×</button>
+                  </span>
+                </div>
+                <div class="tag-input-wrapper">
+                  <input
+                    ref="tagInputRef"
+                    type="text"
+                    class="tag-input tag-input-inline"
+                    v-model="tagInputText"
+                    @input="onTagInput"
+                    @keydown.enter.prevent="handleTagEnter"
+                    @keydown.down.prevent="moveTagSuggestion(1)"
+                    @keydown.up.prevent="moveTagSuggestion(-1)"
+                    @focus="showTagSuggestions = true"
+                    @blur="hideTagSuggestions"
+                    placeholder="输入标签..."
+                  />
+                  <ul v-if="showTagSuggestions && filteredTagSuggestions.length > 0" class="tag-suggestions tag-suggestions-inline">
+                    <li
+                      v-for="(suggestion, index) in filteredTagSuggestions"
+                      :key="suggestion.id ?? 'new-' + index"
+                      :class="{ active: tagSuggestionIndex === index }"
+                      @mousedown.prevent="selectSuggestion(suggestion)"
+                    >
+                      {{ suggestion.isNew ? '+ 创建: ' + suggestion.name : suggestion.name }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -80,6 +107,16 @@
               <button type="button" class="toolbar-btn" @click="insertMarkdown('[', '](url)')" title="链接">
                 链接
               </button>
+              <label class="toolbar-btn image-upload-label" title="上传图片">
+                图片
+                <input
+                  ref="imageInputRef"
+                  type="file"
+                  accept="image/*"
+                  style="display: none;"
+                  @change="handleImageUpload"
+                />
+              </label>
             </div>
             <textarea
               ref="contentEditor"
@@ -96,43 +133,6 @@
           <div class="sidebar-card">
             <h3 class="sidebar-title">发布设置</h3>
             
-            <div class="form-group">
-              <label class="form-label">标签</label>
-              <div class="tags-input">
-                <div class="selected-tags">
-                  <span v-for="tagId in form.tagIds" :key="tagId" class="selected-tag">
-                    {{ getTagName(tagId) }}
-                    <button type="button" class="remove-tag" @click="removeTag(tagId)">×</button>
-                  </span>
-                </div>
-                <div class="tag-input-wrapper">
-                  <input
-                    ref="tagInputRef"
-                    type="text"
-                    class="tag-input"
-                    v-model="tagInputText"
-                    @input="onTagInput"
-                    @keydown.enter.prevent="handleTagEnter"
-                    @keydown.down.prevent="moveTagSuggestion(1)"
-                    @keydown.up.prevent="moveTagSuggestion(-1)"
-                    @focus="showTagSuggestions = true"
-                    @blur="hideTagSuggestions"
-                    placeholder="输入标签，回车创建"
-                  />
-                  <ul v-if="showTagSuggestions && filteredTagSuggestions.length > 0" class="tag-suggestions">
-                    <li
-                      v-for="(suggestion, index) in filteredTagSuggestions"
-                      :key="suggestion.id ?? 'new-' + index"
-                      :class="{ active: tagSuggestionIndex === index }"
-                      @mousedown.prevent="selectSuggestion(suggestion)"
-                    >
-                      {{ suggestion.isNew ? '+ 创建: ' + suggestion.name : suggestion.name }}
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
             <div class="form-group">
               <label class="checkbox-label">
                 <input type="checkbox" v-model="form.isTop" />
@@ -172,6 +172,7 @@ import { useRouter } from 'vue-router'
 import { useBlogStore } from '@/store/blog'
 import { articleApi } from '@/api/article'
 import { tagApi } from '@/api/tag'
+import { fileApi } from '@/api/file'
 import { useAuth } from '@/composables/useApi'
 
 const router = useRouter()
@@ -180,6 +181,8 @@ const { isLoggedIn } = useAuth()
 
 const contentEditor = ref<HTMLTextAreaElement | null>(null)
 const tagInputRef = ref<HTMLInputElement | null>(null)
+const imageInputRef = ref<HTMLInputElement | null>(null)
+const uploadingImage = ref(false)
 const submitting = ref(false)
 const tagInputText = ref('')
 const showTagSuggestions = ref(false)
@@ -187,7 +190,6 @@ const tagSuggestionIndex = ref(0)
 
 const form = reactive({
   title: '',
-  slug: '',
   summary: '',
   content: '',
   categoryId: null as number | null,
@@ -207,19 +209,26 @@ const availableTags = computed(() =>
 const filteredTagSuggestions = computed(() => {
   const keyword = tagInputText.value.trim().toLowerCase()
   const result: Array<{ id: number; name: string; isNew: boolean }> = []
+  const tagList = Array.isArray(allTags.value) ? allTags.value : []
 
-  // 有输入文字时：第一个选项是"创建标签"
   if (keyword) {
-    result.push({ id: -1, name: keyword, isNew: true })
-
-    const matched = availableTags.value
-      .filter(t => t.name.toLowerCase().includes(keyword))
+    // 先显示匹配的已有标签（优先展示）
+    const matched = tagList
+      .filter(t => !form.tagIds.includes(t.id) && t.name.toLowerCase().includes(keyword))
       .slice(0, 5)
       .map(t => ({ ...t, isNew: false }))
     result.push(...matched)
+
+    // 再追加"创建新标签"选项（仅当输入内容与所有已有标签不完全匹配时）
+    if (!tagList.some(t => t.name.toLowerCase() === keyword)) {
+      result.push({ id: -1, name: keyword, isNew: true })
+    }
   } else {
-    // 未输入时：显示已有的可选标签供选择
-    const shown = availableTags.value.slice(0, 8).map(t => ({ ...t, isNew: false }))
+    // 未输入时：显示可选的已有标签供选择
+    const shown = tagList
+      .filter(t => !form.tagIds.includes(t.id))
+      .slice(0, 8)
+      .map(t => ({ ...t, isNew: false }))
     result.push(...shown)
   }
 
@@ -231,6 +240,16 @@ onMounted(async () => {
     if (!isLoggedIn.value) {
       router.push('/login')
       return
+    }
+    // 检查发帖权限
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      if (user.role === 0) {
+        alert('您暂无发帖权限，请联系管理员申请成为授权用户')
+        router.push('/articles')
+        return
+      }
     }
     await Promise.allSettled([
       blogStore.fetchCategories(),
@@ -321,31 +340,42 @@ function insertMarkdown(before: string, after: string) {
   }, 0)
 }
 
+async function handleImageUpload(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  uploadingImage.value = true
+  try {
+    const res = await fileApi.uploadImage(file)
+    const imageUrl = res.data
+    // 在光标位置插入 Markdown 图片语法
+    insertMarkdown(`![图片](${imageUrl})`, '')
+  } catch (e: any) {
+    alert(e.response?.data?.message || e.message || '图片上传失败')
+  } finally {
+    uploadingImage.value = false
+    // 清空 input 以允许重复选择同一文件
+    input.value = ''
+  }
+}
+
 async function handleSubmit() {
   if (!form.title.trim() || !form.content.trim()) {
     alert('请填写文章标题和内容')
     return
   }
-  
+
   submitting.value = true
   try {
-    const rawSlug = form.slug.trim()
-    let slug: string
-    if (rawSlug) {
-      slug = rawSlug
-    } else {
-      // 从标题生成 slug：保留中文、字母、数字、连字符
-      slug = form.title.trim()
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\u4e00-\u9fff-]/g, '')
-        .replace(/^-+|-+$/g, '')
-      // 如果生成的 slug 为空（纯符号标题），回退到时间戳
-      if (!slug) {
-        slug = 'post-' + Date.now()
-      }
-    }
-    
+    // 从标题自动生成 slug（不再暴露给用户）
+    const slug = form.title.trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^\w\u4e00-\u9fff-]/g, '')
+      .replace(/^-+|-+$/g, '')
+      || ('post-' + Date.now())
+
     await articleApi.create({
       title: form.title.trim(),
       slug,
@@ -356,7 +386,7 @@ async function handleSubmit() {
       status: form.status,
       isTop: form.isTop
     })
-    
+
     alert(form.status === 1 ? '文章发布成功！' : '草稿保存成功！')
     router.push('/articles')
   } catch (e: any) {
@@ -502,6 +532,14 @@ async function saveDraft() {
   border-color: var(--primary-color);
 }
 
+.image-upload-label {
+  cursor: pointer;
+}
+
+.image-upload-label input {
+  display: none;
+}
+
 .content-editor {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.95rem;
@@ -583,6 +621,41 @@ async function saveDraft() {
   font-size: 0.9rem;
   color: var(--text-primary);
   transition: background 0.15s;
+}
+
+/* 内联标签输入（用于 form-row 中的紧凑布局） */
+.tags-input-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.selected-tags-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 28px;
+}
+
+.selected-tag-inline {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  background: rgba(255, 107, 157, 0.1);
+  color: var(--primary-color);
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.tag-input-inline {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.tag-suggestions-inline {
+  min-width: 200px;
 }
 
 .tag-suggestions li:hover,

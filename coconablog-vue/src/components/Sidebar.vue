@@ -26,36 +26,19 @@
 
     <div class="sidebar-section card">
       <h3 class="section-title">
-        <span>文章分类</span>
+        <span>🎲 随机推荐</span>
       </h3>
-      <div class="category-list">
+      <div v-if="randomList.length === 0" class="sidebar-empty">加载中...</div>
+      <div v-else class="random-list">
         <div
-          v-for="category in blogStore.categories"
-          :key="category.id"
-          class="category-item"
-          @click="filterByCategory(category.id)"
+          v-for="item in randomList"
+          :key="item.id"
+          class="random-item"
+          @click="$router.push(`/article/${item.id}`)"
         >
-          <span class="category-name">{{ category.name }}</span>
-          <span class="category-count">
-            {{ category.articleCount }}
-          </span>
+          <span class="random-title">{{ item.title }}</span>
+          <span class="random-stats">👀 {{ item.viewCount }}  ❤️ {{ item.likeCount }}</span>
         </div>
-      </div>
-    </div>
-
-    <div class="sidebar-section card">
-      <h3 class="section-title">
-        <span>热门标签</span>
-      </h3>
-      <div class="tag-cloud">
-        <span
-          v-for="tag in blogStore.allTags"
-          :key="tag.id"
-          class="tag"
-          @click="filterByTag(tag.id)"
-        >
-          #{{ tag.name }}
-        </span>
       </div>
     </div>
 
@@ -87,16 +70,29 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useBlogStore } from '@/store/blog'
+import { articleApi } from '@/api/article'
 
 const router = useRouter()
 const blogStore = useBlogStore()
+const randomList = ref<any[]>([])
 
-onMounted(() => {
+onMounted(async () => {
   blogStore.fetchCategories()
   blogStore.fetchTags()
+  try {
+    const res = await articleApi.getList({ pageSize: 12 })
+    const list = res.data.list
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[list[i], list[j]] = [list[j], list[i]]
+    }
+    randomList.value = list.slice(0, 5)
+  } catch {
+    randomList.value = []
+  }
 })
 
 function formatNumber(num: number): string {
@@ -104,20 +100,6 @@ function formatNumber(num: number): string {
     return (num / 1000).toFixed(1) + 'k'
   }
   return num.toString()
-}
-
-function filterByCategory(categoryId: number) {
-  router.push({
-    path: '/articles',
-    query: { category: categoryId }
-  })
-}
-
-function filterByTag(tagId: number) {
-  router.push({
-    path: '/articles',
-    query: { tag: tagId }
-  })
 }
 </script>
 
@@ -184,16 +166,23 @@ function filterByTag(tagId: number) {
   color: var(--text-muted);
 }
 
-.category-list {
+.sidebar-empty {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: var(--spacing-md);
+}
+
+.random-list {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
 }
 
-.category-item {
+.random-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 2px;
   padding: var(--spacing-sm) var(--spacing-md);
   background: var(--bg-hover);
   border-radius: var(--border-radius-sm);
@@ -201,38 +190,24 @@ function filterByTag(tagId: number) {
   transition: all var(--transition-normal);
 }
 
-.category-item:hover {
+.random-item:hover {
   background: var(--primary-color);
   color: white;
   transform: translateX(4px);
 }
 
-.category-name {
+.random-title {
   font-weight: 500;
+  font-size: 0.88rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.category-count {
-  background: var(--gradient-primary);
-  color: white;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.category-item:hover .category-count {
-  background: white;
-  color: var(--primary-color);
-}
-
-.tag-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-}
-
-.tag {
-  cursor: pointer;
+.random-stats {
+  font-size: 0.78rem;
+  opacity: 0.7;
 }
 
 .author-card {

@@ -30,10 +30,11 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        initAdminUser();
-        initCategories();
-        initTags();
-        initArticles();
+//        initAdminUser();
+//        initCategories();
+//        initTags();
+        // 文章不再自动创建，通过管理后台手动添加
+        // initArticles();
     }
 
     private void initAdminUser() {

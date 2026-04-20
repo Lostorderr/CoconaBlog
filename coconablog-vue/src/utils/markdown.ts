@@ -49,6 +49,25 @@ const md = new MarkdownIt({
   }
 })
 
+const defaultImageRender = md.renderer.rules.image || function(tokens, idx, options, env, self) {
+  return self.renderToken(tokens, idx, options)
+}
+
+md.renderer.rules.image = (tokens, idx, options, env, self) => {
+  const token = tokens[idx]
+  const src = token.attrGet('src') || ''
+  const alt = token.content || ''
+
+  token.attrSet('class', 'markdown-image')
+  token.attrSet('data-src', src)
+  // 用 data-full-src 存储原图 URL，src 先留空由 CSS 控制占位
+  token.attrSet('data-full-src', src)
+
+  const imgHtml = defaultImageRender(tokens, idx, options as any, env, self)
+  // 包裹在可点击容器中
+  return `<span class="img-lightbox-trigger">${imgHtml}</span>`
+}
+
 export function renderMarkdown(content: string): { html: string; toc: TocItem[] } {
   const toc: TocItem[] = []
   let headingIndex = 0

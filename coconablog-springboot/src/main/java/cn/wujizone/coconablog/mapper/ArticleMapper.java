@@ -21,7 +21,7 @@ public interface ArticleMapper {
             "<if test='tagId != null'> AND id IN (SELECT article_id FROM article_tag WHERE tag_id = #{tagId}) </if>" +
             "<if test='keyword != null'> AND (title LIKE CONCAT('%',#{keyword},'%') OR summary LIKE CONCAT('%',#{keyword},'%')) </if>" +
             "<if test='userId != null'> AND user_id = #{userId} </if>" +
-            " ORDER BY is_top DESC, create_time DESC " +
+            " ORDER BY is_top DESC, ${orderBy} " +
             " LIMIT #{offset}, #{pageSize}" +
             "</script>")
     List<Article> findByCondition(@Param("categoryId") Long categoryId,
@@ -30,7 +30,8 @@ public interface ArticleMapper {
                                    @Param("status") Integer status,
                                    @Param("userId") Long userId,
                                    @Param("offset") Integer offset,
-                                   @Param("pageSize") Integer pageSize);
+                                   @Param("pageSize") Integer pageSize,
+                                   @Param("orderBy") String orderBy);
     
     @Select("<script>" +
             "SELECT COUNT(*) FROM article WHERE 1=1 " +

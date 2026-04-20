@@ -4,12 +4,14 @@ import cn.wujizone.coconablog.dto.CategoryVO;
 import cn.wujizone.coconablog.entity.Category;
 import cn.wujizone.coconablog.mapper.CategoryMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
@@ -31,6 +33,7 @@ public class CategoryService {
     @Transactional
     public CategoryVO createCategory(CategoryVO request) {
         if (categoryMapper.findBySlug(request.getSlug()) != null) {
+            log.error("创建分类失败, slug已存在, slug={}", request.getSlug());
             throw new RuntimeException("slug已存在");
         }
         Category category = new Category();
@@ -47,11 +50,13 @@ public class CategoryService {
     public CategoryVO updateCategory(Long id, CategoryVO request) {
         Category category = categoryMapper.findById(id);
         if (category == null) {
+            log.error("更新分类失败, 分类不存在, id={}", id);
             throw new RuntimeException("分类不存在");
         }
         if (request.getName() != null) category.setName(request.getName());
         if (request.getSlug() != null && !request.getSlug().equals(category.getSlug())) {
             if (categoryMapper.findBySlug(request.getSlug()) != null) {
+                log.error("更新分类失败, slug已存在, slug={}", request.getSlug());
                 throw new RuntimeException("slug已存在");
             }
             category.setSlug(request.getSlug());

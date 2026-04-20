@@ -125,7 +125,7 @@ const router = createRouter({
   }
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   document.title = `${to.meta.title || '博客'} - Cocona Blog`
   
   const token = localStorage.getItem('token')
@@ -143,6 +143,20 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !token) {
     next('/login')
     return
+  }
+  
+  // 发帖/编辑文章需要 role >= 1 (非普通用户)
+  const isAuthorPage = to.path === '/create-article' || to.path.startsWith('/edit-article')
+  if (isAuthorPage && token && userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      // role: 0=普通用户, 1=管理员, 2=授权用户
+      if (user.role === 0) {
+        alert('您暂无发帖权限，请联系管理员申请成为授权用户')
+        next('/articles')
+        return
+      }
+    } catch {}
   }
   
   if (to.meta.requiresAdmin && !isAdmin) {

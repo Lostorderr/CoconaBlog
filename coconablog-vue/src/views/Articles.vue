@@ -15,34 +15,62 @@
       <div class="content-layout">
         <main class="main-content">
           <div class="filter-bar">
-            <div class="filter-tabs">
-              <button
-                class="filter-tab"
-                :class="{ active: currentCategoryId === null }"
-                @click="filterByCategory(null)"
-              >
-                全部
-              </button>
-              <button
-                v-for="cat in blogStore.categories"
-                :key="cat.id"
-                class="filter-tab"
-                :class="{ active: currentCategoryId === cat.id }"
-                @click="filterByCategory(cat.id)"
-              >
-                {{ cat.name }}
-              </button>
+            <!-- 排序方式 -->
+            <div class="sort-group">
+              <span class="sort-label">排序：</span>
+              <div class="sort-options">
+                <div
+                  v-for="opt in sortOptions"
+                  :key="opt.value"
+                  class="sort-item"
+                >
+                  <button
+                    class="sort-btn"
+                    :class="{ active: currentSort === opt.value }"
+                    @click="changeSort(opt.value)"
+                  >
+                    {{ opt.label }}
+                  </button>
+                  <button
+                    class="order-toggle-btn"
+                    :class="{ active: currentSort === opt.value }"
+                    :title="currentSort === opt.value && currentOrder === 'asc' ? '当前：升序（点击切降序）' : '当前：降序（点击切升序）'"
+                    @click="toggleOrderFor(opt.value)"
+                  >
+                    {{ currentSort === opt.value ? (currentOrder === 'desc' ? '↓' : '↑') : '↓' }}
+                  </button>
+                </div>
+              </div>
             </div>
 
+            <!-- 搜索框 -->
             <div class="search-box">
               <input
                 v-model="searchQuery"
                 type="text"
                 placeholder="搜索文章..."
                 class="search-input"
+                @keyup.enter="handleSearch"
               />
-              <span class="search-icon"></span>
+              <button class="search-icon" @click="handleSearch">🔍</button>
             </div>
+          </div>
+
+          <!-- 当前筛选状态提示 -->
+          <div v-if="searchQuery || (currentSort !== 'publish_time') || (currentOrder !== 'desc')" class="active-filters">
+            <span class="filter-label">当前筛选：</span>
+            <span v-if="currentSort !== 'publish_time'" class="filter-chip">
+              排序：{{ sortOptions.find(o => o.value === currentSort)?.label }}
+              <button @click="currentSort = 'publish_time'; currentOrder = 'desc'; loadArticles(); syncUrl()">&times;</button>
+            </span>
+            <span v-if="currentOrder !== 'desc'" class="filter-chip order-chip">
+              顺序：{{ currentOrder === 'asc' ? '升序 ↑' : '降序 ↓' }}
+              <button @click="currentOrder = 'desc'; loadArticles(); syncUrl()">&times;</button>
+            </span>
+            <span v-if="searchQuery" class="filter-chip">
+              搜索：{{ searchQuery }}
+              <button @click="clearSearch">&times;</button>
+            </span>
           </div>
 
           <div v-if="blogStore.loading" class="loading-state">
@@ -61,7 +89,7 @@
           <div v-else class="empty-state">
             <div class="empty-icon"></div>
             <h3 class="empty-title">没有找到相关文章</h3>
-            <p class="empty-desc">试试其他关键词或分类吧~</p>
+            <p class="empty-desc">试试其他关键词或筛选条件吧~</p>
           </div>
         </main>
 
@@ -83,31 +111,72 @@ const router = useRouter()
 const blogStore = useBlogStore()
 
 const searchQuery = ref('')
-const currentCategoryId = ref<number | null>(null)
+const currentSort = ref('publish_time')
+const currentOrder = ref<'asc' | 'desc'>('desc')
+
+const sortOptions = [
+  { label: '发布时间', value: 'publish_time' },
+  { label: '点赞量', value: 'like_count' },
+  { label: '浏览量', value: 'view_count' }
+]
 
 onMounted(async () => {
   await blogStore.fetchCategories()
+  // 从 URL 恢复状态
+  if (route.query.orderBy) {
+    const val = String(route.query.orderBy)
+    if (sortOptions.some(o => o.value === val)) currentSort.value = val
+  }
+  if (route.query.order) {
+    const ord = String(route.query.order)
+    if (ord === 'asc' || ord === 'desc') currentOrder.value = ord
+  }
+  if (route.query.search) {
+    searchQuery.value = String(route.query.search)
+  }
   await loadArticles()
 })
 
-watch(() => route.query, (query) => {
-  if (query.category) {
-    currentCategoryId.value = Number(query.category)
+function toggleOrderFor(sort: string) {
+  if (currentSort.value === sort) {
+    currentOrder.value = currentOrder.value === 'desc' ? 'asc' : 'desc'
   } else {
-    currentCategoryId.value = null
-  }
-  if (query.tag) {
-    searchQuery.value = String(query.tag)
-  }
-  if (query.search) {
-    searchQuery.value = String(query.search)
+    currentSort.value = sort
+    currentOrder.value = 'desc'
   }
   loadArticles()
-}, { immediate: true })
+  syncUrl()
+}
+
+function changeSort(value: string) {
+  currentSort.value = value
+  loadArticles()
+  syncUrl()
+}
+
+function clearSearch() {
+  searchQuery.value = ''
+  loadArticles()
+  syncUrl()
+}
+
+function handleSearch() {
+  loadArticles()
+  syncUrl()
+}
+
+function syncUrl() {
+  const query: Record<string, string> = {}
+  if (currentSort.value !== 'publish_time') query.orderBy = currentSort.value
+  if (currentOrder.value !== 'desc') query.order = currentOrder.value
+  if (searchQuery.value) query.search = searchQuery.value
+  router.replace({ path: '/articles', query })
+}
 
 async function loadArticles() {
   await blogStore.fetchArticles({
-    categoryId: currentCategoryId.value || undefined,
+    orderBy: currentSort.value,
+    order: currentOrder.value,
     keyword: searchQuery.value || undefined
   })
 }
@@ -115,26 +184,17 @@ async function loadArticles() {
 const filteredArticles = computed(() => {
   let articles = blogStore.articles
 
+  // 搜索关键词二次过滤
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     articles = articles.filter(a =>
       a.title.toLowerCase().includes(query) ||
-      (a.summary && a.summary.toLowerCase().includes(query)) ||
-      (a.tags && a.tags.some(tag => tag.name.toLowerCase().includes(query)))
+      (a.summary && a.summary.toLowerCase().includes(query))
     )
   }
 
   return articles
 })
-
-function filterByCategory(categoryId: number | null) {
-  currentCategoryId.value = categoryId
-  if (categoryId === null) {
-    router.push({ path: '/articles' })
-  } else {
-    router.push({ path: '/articles', query: { category: categoryId } })
-  }
-}
 </script>
 
 <style scoped>
@@ -186,11 +246,12 @@ function filterByCategory(categoryId: number | null) {
   gap: var(--spacing-lg);
 }
 
+/* 筛选栏 */
 .filter-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
   padding: var(--spacing-md);
   background: var(--bg-card);
   border-radius: var(--border-radius);
@@ -198,61 +259,172 @@ function filterByCategory(categoryId: number | null) {
   flex-wrap: wrap;
 }
 
-.filter-tabs {
+.sort-group {
   display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
-  flex-wrap: wrap;
 }
 
-.filter-tab {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: transparent;
-  border: 2px solid var(--border-color);
-  border-radius: 20px;
+.sort-label {
+  font-size: 0.9rem;
   color: var(--text-secondary);
+  white-space: nowrap;
   font-weight: 500;
-  transition: all var(--transition-normal);
 }
 
-.filter-tab:hover {
-  border-color: var(--primary-color);
+.sort-options {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-secondary);
+  padding: 3px;
+  border-radius: 20px;
+}
+
+.sort-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.sort-btn {
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.sort-btn:hover {
   color: var(--primary-color);
 }
 
-.filter-tab.active {
-  background: var(--gradient-primary);
-  border-color: transparent;
-  color: white;
+.sort-btn.active {
+  background: white;
+  color: var(--primary-color);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  font-weight: 600;
 }
 
+.order-toggle-btn {
+  width: 26px;
+  padding: 6px 0;
+  background: transparent;
+  border: none;
+  border-radius: 13px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+
+.order-toggle-btn:hover {
+  color: var(--primary-color);
+  background: white;
+}
+
+.order-toggle-btn.active {
+  background: white;
+  color: var(--primary-color);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+/* 搜索框 */
 .search-box {
   position: relative;
-  flex: 0 0 250px;
+  flex: 0 0 200px;
 }
 
 .search-input {
   width: 100%;
-  padding: var(--spacing-sm) var(--spacing-md);
-  padding-right: 40px;
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  font-size: 0.95rem;
+  padding: 8px 36px 8px 14px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 20px;
+  font-size: 0.88rem;
   transition: all var(--transition-normal);
+  background: var(--bg-secondary);
 }
 
 .search-input:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.1);
+  background: white;
 }
 
 .search-icon {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.1rem;
-  pointer-events: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 2px;
+  line-height: 1;
+}
+
+/* 当前筛选状态 */
+.active-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 107, 157, 0.06);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(255, 107, 157, 0.15);
+}
+
+.filter-label {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}
+
+.filter-chip button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 2px;
+}
+
+.filter-chip button:hover {
+  color: #e74c3c;
+}
+
+.tag-chip {
+  background: rgba(124, 77, 255, 0.08);
+  border-color: rgba(124, 77, 255, 0.2);
+  color: #7c4dff;
+}
+
+.order-chip {
+  background: rgba(124, 77, 255, 0.08);
+  border-color: rgba(124, 77, 255, 0.2);
+  color: #7c4dff;
 }
 
 .articles-list {
@@ -322,7 +494,7 @@ function filterByCategory(categoryId: number | null) {
     align-items: stretch;
   }
 
-  .filter-tabs {
+  .sort-group {
     justify-content: center;
   }
 

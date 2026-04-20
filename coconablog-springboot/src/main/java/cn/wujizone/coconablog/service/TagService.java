@@ -5,12 +5,14 @@ import cn.wujizone.coconablog.dto.TagVO;
 import cn.wujizone.coconablog.entity.Tag;
 import cn.wujizone.coconablog.mapper.TagMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class TagService {
@@ -47,6 +49,7 @@ public class TagService {
     @Transactional
     public TagVO createTag(TagVO request) {
         if (tagMapper.findBySlug(request.getSlug()) != null) {
+            log.error("创建标签失败, slug已存在, slug={}", request.getSlug());
             throw new RuntimeException("slug已存在");
         }
         Tag tag = new Tag();
@@ -60,11 +63,13 @@ public class TagService {
     public TagVO updateTag(Long id, TagVO request) {
         Tag tag = tagMapper.findById(id);
         if (tag == null) {
+            log.error("更新标签失败, 标签不存在, id={}", id);
             throw new RuntimeException("标签不存在");
         }
         if (request.getName() != null) tag.setName(request.getName());
         if (request.getSlug() != null && !request.getSlug().equals(tag.getSlug())) {
             if (tagMapper.findBySlug(request.getSlug()) != null) {
+                log.error("更新标签失败, slug已存在, slug={}", request.getSlug());
                 throw new RuntimeException("slug已存在");
             }
             tag.setSlug(request.getSlug());

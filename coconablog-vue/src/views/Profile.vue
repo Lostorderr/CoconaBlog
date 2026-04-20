@@ -239,6 +239,9 @@ onMounted(async () => {
     return
   }
   
+  // 从服务器刷新最新的用户信息（解决管理员改角色后本地缓存过期的问题）
+  await fetchProfile()
+  
   if (user.value) {
     profileForm.username = user.value.username
     profileForm.email = user.value.email

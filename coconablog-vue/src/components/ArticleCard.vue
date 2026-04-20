@@ -1,5 +1,6 @@
 <template>
   <div class="article-card card" @click="navigateToArticle">
+    <div v-if="hotIndex" class="hot-badge" :class="'hot-' + hotIndex">{{ hotIndex }}</div>
     <div class="card-main">
       <div class="card-body">
         <div class="card-header">
@@ -43,6 +44,7 @@ import type { Article } from '@/store/blog'
 
 const props = defineProps<{
   article: Article
+  hotIndex?: number
 }>()
 
 const router = useRouter()
@@ -67,6 +69,35 @@ function formatDate(date: string): string {
   padding: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+.hot-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: white;
+  border-bottom-right-radius: 10px;
+  z-index: 1;
+}
+
+.hot-1 {
+  background: linear-gradient(135deg, #ff4757, #ff6b81);
+}
+
+.hot-2 {
+  background: linear-gradient(135deg, #ff7f50, #ffa07a);
+}
+
+.hot-3 {
+  background: linear-gradient(135deg, #ffa502, #ffc048);
 }
 
 .card-main {

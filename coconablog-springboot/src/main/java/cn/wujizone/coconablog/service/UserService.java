@@ -6,6 +6,7 @@ import cn.wujizone.coconablog.entity.User;
 import cn.wujizone.coconablog.mapper.UserMapper;
 import cn.wujizone.coconablog.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -24,12 +26,15 @@ public class UserService {
     public LoginResponse login(LoginRequest request) {
         User user = userMapper.findByUsername(request.getUsername());
         if (user == null) {
+            log.error("登录失败, 用户不存在, username={}", request.getUsername());
             throw new RuntimeException("用户不存在");
         }
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            log.error("登录失败, 密码错误, username={}", request.getUsername());
             throw new RuntimeException("密码错误");
         }
         if (user.getStatus() == 1) {
+            log.error("登录失败, 账号已被禁用, username={}", request.getUsername());
             throw new RuntimeException("账号已被禁用");
         }
         
@@ -44,9 +49,11 @@ public class UserService {
     @Transactional
     public void register(RegisterRequest request) {
         if (userMapper.findByUsername(request.getUsername()) != null) {
+            log.error("注册失败, 用户名已存在, username={}", request.getUsername());
             throw new RuntimeException("用户名已存在");
         }
         if (userMapper.findByEmail(request.getEmail()) != null) {
+            log.error("注册失败, 邮箱已存在, email={}", request.getEmail());
             throw new RuntimeException("邮箱已存在");
         }
         
@@ -69,6 +76,7 @@ public class UserService {
     public UserVO updateProfile(Long userId, UserVO request) {
         User user = userMapper.findById(userId);
         if (user == null) {
+            log.error("更新个人资料失败, 用户不存在, userId={}", userId);
             throw new RuntimeException("用户不存在");
         }
         if (request.getUsername() != null) user.setUsername(request.getUsername());
@@ -102,6 +110,7 @@ public class UserService {
     public void updateUserStatus(Long id, Integer status) {
         User user = userMapper.findById(id);
         if (user == null) {
+            log.error("更新用户状态失败, 用户不存在, id={}", id);
             throw new RuntimeException("用户不存在");
         }
         user.setStatus(status);
@@ -112,6 +121,7 @@ public class UserService {
     public void updateUserRole(Long id, Integer role) {
         User user = userMapper.findById(id);
         if (user == null) {
+            log.error("更新用户角色失败, 用户不存在, id={}", id);
             throw new RuntimeException("用户不存在");
         }
         user.setRole(role);
@@ -126,22 +136,22 @@ public class UserService {
     public UserVO getSecurityInfo(String username) {
         User user = userMapper.findByUsernameForSecurity(username);
         if (user == null) {
+            log.error("获取安全问题失败, 用户不存在, username={}", username);
             throw new RuntimeException("用户不存在");
         }
         UserVO vo = new UserVO();
         vo.setId(user.getId());
         vo.setUsername(user.getUsername());
         vo.setSecurityQuestion(user.getSecurityQuestion());
-        // 返回密保问题但不返回答案
         return vo;
     }
     
     public boolean verifySecurityAnswer(String username, String answer) {
         User user = userMapper.findByUsernameForSecurity(username);
         if (user == null) {
+            log.error("验证安全问题失败, 用户不存在, username={}", username);
             throw new RuntimeException("用户不存在");
         }
-        // 兼容：BCrypt哈希 或 明文
         if (passwordEncoder.matches(answer, user.getSecurityAnswer())) {
             return true;
         }
@@ -152,6 +162,7 @@ public class UserService {
     public void resetPassword(String username, String newPassword) {
         User user = userMapper.findByUsername(username);
         if (user == null) {
+            log.error("重置密码失败, 用户不存在, username={}", username);
             throw new RuntimeException("用户不存在");
         }
         userMapper.updatePasswordByUsername(username, passwordEncoder.encode(newPassword));
